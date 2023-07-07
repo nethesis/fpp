@@ -1,0 +1,55 @@
+http:
+  routers:
+    ping:
+      entryPoints:
+      - http
+      rule: Path(`/ping`)
+      middlewares:
+      - my-auth
+      service: ping@internal
+    ping-https:
+      entryPoints:
+      - https
+      rule: Path(`/ping`)
+      middlewares:
+      - my-auth
+      service: ping@internal
+      tls: {}
+    send-push-nethesis:
+      entryPoints:
+        - http
+      middlewares:
+        - my-auth
+        - remove-auth-header
+        - strip-brand
+      rule: PathPrefix(`/nethesis/`)
+      service: fpp-nethesis
+    send-push-https-nethesis:
+      entryPoints:
+        - https
+      middlewares:
+        - my-auth
+        - remove-auth-header
+        - strip-brand
+      rule: PathPrefix(`/nethesis/`)
+      service: fpp-nethesis
+      tls: {}
+  middlewares:
+    my-auth:
+      forwardAuth:
+        address: 'https://my.nethesis.it/auth'
+    remove-auth-header:
+      headers:
+        customRequestHeaders:
+          Authorization: ''
+    strip-brand:
+      stripPrefix:
+        prefixes:
+          - "/nethesis"
+  services:
+    fpp-nethesis:
+      loadBalancer:
+        passHostHeader: false
+        servers:
+          - url: 'http://localhost:9191'
+

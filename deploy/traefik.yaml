@@ -1,0 +1,24 @@
+entryPoints:
+  http:
+    address: ":80"
+  https:
+    address: ":443"
+  metrics:
+    address: ":8282"
+
+accessLog:
+  format: json
+metrics:
+  prometheus:
+    entryPoint: metrics
+    addEntryPointsLabels: true
+    addServicesLabels: true
+ping:
+  manualRouting: true
+
+providers:
+  file:
+    filename: /etc/traefik/dynamic.yml
+
+log:
+  level: DEBUG
