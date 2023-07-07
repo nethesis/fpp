@@ -46,12 +46,12 @@ func send(c *gin.Context) {
     	}
 
 	message := &messaging.Message{
-        Notification: &messaging.Notification{
-				Title: notification.Title,
-				Body:  notification.Body,
-			},
+		Notification: &messaging.Notification{
+			Title: notification.Title,
+			Body:  notification.Body,
+		},
 		Data: map[string]string{ "call-id": notification.CallId, "uuid": notification.Uuid },
-        Topic: notification.Topic,
+		Topic: notification.Topic,
 	}
 
 	response, err := client.Send(ctx, message)
