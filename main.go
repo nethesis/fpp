@@ -90,6 +90,11 @@ func main() {
 	router.GET("/ping", ping)
 	router.POST("/send", send)
 
-	router.Run()
+	listen := os.Getenv("LISTEN")
+	if len(listen) == 0 {
+		listen = "127.0.0.1:8080"
+	}
+
+	router.Run(listen)
 }
 
