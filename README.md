@@ -14,6 +14,6 @@ GOOGLE_APPLICATION_CREDENTIALS="./credentials.json" ./fpp
 
 Client example:
 ```
- curl -H "Accept: application/json" http://localhost:8080/send --data '{"topic": "mytopic", "uuid": "xxxx", "call-id": "yyy"}'
+ curl -H "Accept: application/json" http://165.232.81.5:9191/send --data '{"topic": "testmst%nethctiapp.nethserver.net", "uuid": "xxxx", "call-id": "yyy", "title": "test title", "body": "test body"}'
 ```
 
