@@ -1,8 +1,10 @@
 package main
 
 import (
-	"context"
+	"os"
 	"fmt"
+	"time"
+	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -29,6 +31,11 @@ func ping(c *gin.Context) {
 	c.JSON(http.StatusOK, Response{Message: "pong"})
 }
 
+func audit(result string, response string, notification *Notification) {
+	now := time.Now().Format(time.RFC3339)
+	fmt.Fprintln(os.Stderr, now, result, response, notification.Topic, notification.CallId, notification.Uuid)
+}
+
 func send(c *gin.Context) {
 	var notification Notification
 
@@ -44,32 +51,34 @@ func send(c *gin.Context) {
 	response, err := client.Send(ctx, message)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, Response{Message: err.Error()})
-		fmt.Println("Error:", err.Error())
+		audit("error", err.Error(), &notification)
 	}
 
-	fmt.Println("Success:", response)
+	audit("success", response, &notification)
 	c.JSON(http.StatusOK, Response{Message: response})
 }
 
-func initFarebase() (app *firebase.App) {
-	app, err := firebase.NewApp(context.Background(), nil)
+func initFirebase() (app *firebase.App) {
+	var err error
+	app, err = firebase.NewApp(context.Background(), nil)
 
 	if err != nil {
-		fmt.Errorf("error initializing app: %v", err)
-		return nil
+		fmt.Fprintln(os.Stderr, "Error initializing app: ", err.Error())
+		os.Exit(1)
+	}
+        ctx = context.Background()
+	client, err = app.Messaging(ctx)
+
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error initializing messaging client: ", err.Error())
+		os.Exit(2)
 	}
 
 	return app
 }
 
 func main() {
-	app = initFarebase()
-	ctx = context.Background()
-	client, _ = app.Messaging(ctx)
-
-	//if err != nil {
-        //	log.Fatalln(err)
-	//}
+	initFirebase()
 
 	router := gin.Default()
 	router.GET("/ping", ping)
