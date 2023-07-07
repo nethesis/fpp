@@ -15,10 +15,17 @@ curl -H "Accept: application/json" http://localhost:9191/send \
   --data '{"topic": "testmst%nethctiapp.nethserver.net", "uuid": "xxxx", "call-id": "yyy", "title": "test title", "body": "test body"}'
 ```
 
-Client example with Traefik proxy:
+Client example with Traefik proxy.
+
+Send notification:
 ```
-curl -H "Accept: application/json" http://<system_id>:<secret>@dev.test.nethserver.net/nethesis/send \
+curl -H "Accept: application/json" https://<system_id>:<secret>@dev.test.nethserver.net/nethesis/send \
   --data '{"topic": "testmst%test.server.org", "uuid": "xxxx", "call-id": "yyy", "title": "Test notification", "body": "tester"}'
+```
+
+Ping:
+```
+curl -H "Accept: application/json" https://<systemid>:<secret>@dev.gs.nethserver.net/nethesis/ping
 ```
 
 Build and deploy on Fedora server:
