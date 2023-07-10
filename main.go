@@ -11,6 +11,7 @@ import (
 
 	firebase "firebase.google.com/go"
 	"firebase.google.com/go/messaging"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var app *firebase.App
@@ -88,6 +89,7 @@ func main() {
 
 	router := gin.Default()
 	router.GET("/ping", ping)
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	router.POST("/send", send)
 
 	listen := os.Getenv("LISTEN")
