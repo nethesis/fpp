@@ -12,7 +12,7 @@ GOOGLE_APPLICATION_CREDENTIALS="./credentials.json" ./fpp
 Client example without Traefik proxy:
 ```
 curl -H "Accept: application/json" http://localhost:9191/send \
-  --data '{"topic": "testmst%nethctiapp.nethserver.net", "uuid": "xxxx", "call-id": "yyy", "title": "test title", "body": "test body"}'
+  --data '{"topic": "testmst%nethctiapp.nethserver.net", "uuid": "xxxx", "call-id": "yyy"}'
 ```
 
 Client example with Traefik proxy.
@@ -20,7 +20,7 @@ Client example with Traefik proxy.
 Send notification:
 ```
 curl -H "Accept: application/json" https://<system_id>:<secret>@dev.test.nethserver.net/nethesis/send \
-  --data '{"topic": "testmst%test.server.org", "uuid": "xxxx", "call-id": "yyy", "title": "Test notification", "body": "tester"}'
+  --data '{"topic": "testmst%test.server.org", "uuid": "xxxx", "call-id": "yyy"}'
 ```
 
 Ping:

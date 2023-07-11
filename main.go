@@ -27,8 +27,6 @@ type Notification struct {
 	CallId string `json:"call-id"`
 	Uuid string `json:"uuid"`
 	Topic string `json:"topic"`
-	Title string `json:"title"`
-	Body string `json:"body"`
 }
 
 func ping(c *gin.Context) {
@@ -55,10 +53,6 @@ func send(c *gin.Context) {
 	}
 
 	message := &messaging.Message{
-		Notification: &messaging.Notification{
-			Title: notification.Title,
-			Body:  notification.Body,
-		},
 		Data: map[string]string{ "call-id": notification.CallId, "uuid": notification.Uuid },
 		Topic: notification.Topic,
 	}
