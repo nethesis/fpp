@@ -50,8 +50,9 @@ func send(c *gin.Context) {
 	var notification Notification
 
 	if err := c.BindJSON(&notification); err != nil {
-        	return
-    	}
+		c.JSON(http.StatusInternalServerError, Response{Message: "Invalid parameters"})
+		return
+	}
 
 	message := &messaging.Message{
 		Notification: &messaging.Notification{
@@ -66,6 +67,7 @@ func send(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, Response{Message: err.Error()})
 		audit("error", err.Error(), &notification)
+		return
 	}
 
 	audit("success", response, &notification)
