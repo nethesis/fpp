@@ -6,6 +6,7 @@ import (
 	"time"
 	"context"
 	"net/http"
+	"encoding/csv"
 
 	"github.com/gin-gonic/gin"
 
@@ -36,7 +37,13 @@ func ping(c *gin.Context) {
 
 func audit(result string, response string, notification *Notification) {
 	now := time.Now().Format(time.RFC3339)
-	fmt.Fprintln(os.Stderr, now, result, response, notification.Topic, notification.CallId, notification.Uuid)
+
+	w := csv.NewWriter(os.Stdout)
+	record := []string{now, result, response, notification.Topic, notification.CallId, notification.Uuid}
+	if err := w.Write(record); err != nil {
+		fmt.Fprintln(os.Stderr, "Error writing record to csv:", err)
+	}
+	w.Flush()
 }
 
 func send(c *gin.Context) {
@@ -84,6 +91,7 @@ func initFirebase() (app *firebase.App) {
 	return app
 }
 
+
 func main() {
 	initFirebase()
 
@@ -99,4 +107,3 @@ func main() {
 
 	router.Run(listen)
 }
-
