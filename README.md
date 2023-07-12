@@ -34,6 +34,26 @@ curl -H "Accept: application/json" http://localhost:8080/send \
   --data '{"topic": "testmst%nethctiapp.nethserver.net", "uuid": "550e8400-e29b-41d4-a716-446655440000", "call-id": "000001"}'
 ```
 
+## Logging
+
+Each requess is logged to standard error in CSV format to ease future data analisys.
+The standard error is redirect to syslog using systemd unit.
+
+Each line has the following format:
+```
+datetime_rfc3339,result,response,topic,callid,uuid
+```
+
+Example of success request:
+```
+2023-07-12T09:16:15Z,success,projects/nethcti-f0ff1/messages/1789059028385963799,a21cec13ef9cc70f2cf56d7c696476d6247b2a6e690bb8251cdaf559771f8529,1234,334455
+```
+
+Example of errored requst:
+```
+2023-07-12T09:16:18Z,error,invalid topic,a21cec13ef9cc70f2cf56d7c696476d6247b2a6e690bb8251cdaf559771f8529,1234,334455
+```
+
 ## Build and deploy
 
 The deploy procedure will:
