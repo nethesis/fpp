@@ -1,32 +1,45 @@
 # FPP (Firebase Push Proxy)
 
-This proxy receive a notification request and forward it to firebase.
+This proxy receive a notification request and forward it to [Google Firebase Cloud Messaging](https://firebase.google.com/docs/cloud-messaging).
+It's designed to be used a push notification proxy for [Android NethCTI app](https://github.com/nethesis/nethcti-app-android)
+and [iOS NethCTI app](https://github.com/nethesis/nethcti-app-iphone).
 
-The proxy requires a service credentials file from Firebase.
+Before starting the server, make sure to get a valid [service account in JSON format](https://firebase.google.com/docs/admin/setup).
 
-Execute the server:
+## Usage
+
+Download a service account and save it to a file named `credentials.json`, then execute the server:
 ```
 GOOGLE_APPLICATION_CREDENTIALS="./credentials.json" ./fpp
 ```
 
-Client example without Traefik proxy:
+The server exposes 2 APIs:
+
+- `/ping`: GET, just test if the service is online
+- `/send`: POST, send a wake-up notification to a device via Firebase
+  Parameters:
+  - `topic`: Unique topic to identify the mobile device. The topic is the sha256sum of the token received by the client
+  after the login
+  - `uuid`: Flexisip transaction identifier
+  - `call-id`: Asterisk call identifier
+
+The server can be configured using the following environment variables:
+- `GOOGLE_APPLICATION_CREDENTIALS`: (required) path of the service account JSON file
+- `LISTEN`: (optional) listen address and port, default is `127.0.0.1:8080`
+
+
+Send a notification using curl, example:
 ```
-curl -H "Accept: application/json" http://localhost:9191/send \
-  --data '{"topic": "testmst%nethctiapp.nethserver.net", "uuid": "xxxx", "call-id": "yyy"}'
+curl -H "Accept: application/json" http://localhost:8080/send \
+  --data '{"topic": "testmst%nethctiapp.nethserver.net", "uuid": "550e8400-e29b-41d4-a716-446655440000", "call-id": "000001"}'
 ```
 
-Client example with Traefik proxy.
+## Build and deploy
 
-Send notification:
-```
-curl -H "Accept: application/json" https://<system_id>:<secret>@dev.test.nethserver.net/nethesis/send \
-  --data '{"topic": "testmst%test.server.org", "uuid": "xxxx", "call-id": "yyy"}'
-```
+The deploy procedure will:
+- configure a fpp instance for every branding
+- configure a Traefik instance to authenticate the requests and forward them to the right fpp instance
 
-Ping:
-```
-curl -H "Accept: application/json" https://<systemid>:<secret>@dev.gs.nethserver.net/nethesis/ping
-```
 
 Build and deploy on Fedora server:
 ```
@@ -52,4 +65,10 @@ Start traefik:
 ```
 cd deploy
 podman run --network=host --name traefik --rm -v $PWD/traefik.yml:/etc/traefik/traefik.yml  -v $PWD/dynamic.yml:/etc/traefik/dynamic.yml traefik:v2.10 
+```
+
+Send a notification using curl through Traefik, example:
+```
+curl -H "Accept: application/json" https://<systemid>:<secret>@dev.gs.nethserver.net/nethesis/ping
+  --data '{"topic": "testmst%nethctiapp.nethserver.net", "uuid": "550e8400-e29b-41d4-a716-446655440000", "call-id": "000001"}'
 ```
