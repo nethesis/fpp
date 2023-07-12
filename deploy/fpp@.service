@@ -8,6 +8,9 @@ PrivateTmp=true
 WorkingDirectory=/var/local/fpp/%i
 Environment=GOOGLE_APPLICATION_CREDENTIALS=/var/local/fpp/%i/credentials.json
 EnvironmentFile=-/var/local/fpp/%i/env
+Environment=GIN_MODE=release
+StandardError=syslog
+StandardOutput=syslog
 User=nobody
 Group=nobody
 ExecStart=/usr/bin/fpp
