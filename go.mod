@@ -3,6 +3,11 @@ module github.com/nethesis/fpp
 go 1.20
 
 require (
+	firebase.google.com/go v3.13.0+incompatible
+	github.com/gin-gonic/gin v1.9.1
+)
+
+require (
 	cloud.google.com/go v0.110.2 // indirect
 	cloud.google.com/go/compute v1.20.1 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
@@ -10,12 +15,10 @@ require (
 	cloud.google.com/go/iam v1.1.0 // indirect
 	cloud.google.com/go/longrunning v0.5.0 // indirect
 	cloud.google.com/go/storage v1.31.0 // indirect
-	firebase.google.com/go v3.13.0+incompatible // indirect
 	github.com/bytedance/sonic v1.9.1 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
-	github.com/gin-gonic/gin v1.9.1 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.14.0 // indirect
