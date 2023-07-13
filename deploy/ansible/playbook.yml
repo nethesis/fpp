@@ -1,0 +1,26 @@
+- hosts: all
+  become: true
+  roles:
+    - role: amygos.traefik
+      vars:
+        traefik_static_configuration:
+          entryPoints:
+            http:
+              address: :80
+            https:
+              address: :443
+            metrics:
+              address: :8082
+          providers:
+            file:
+              directory: /etc/traefik/conf.d
+          accessLog:
+            format: json
+          metrics:
+            prometheus:
+              entryPoint: metrics
+              addEntryPointsLabels: true
+              addServicesLabels: true
+          ping:
+            manualRouting: true
+    - role: fpp

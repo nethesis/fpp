@@ -1,0 +1,17 @@
+http:
+  routers:
+    ping:
+      entryPoints:
+      - http
+      rule: Path(`/ping`)
+      middlewares:
+      - fpp-auth
+      service: ping@internal
+    ping-https:
+      entryPoints:
+      - https
+      rule: Path(`/ping`)
+      middlewares:
+      - fpp-auth
+      service: ping@internal
+      tls: {}

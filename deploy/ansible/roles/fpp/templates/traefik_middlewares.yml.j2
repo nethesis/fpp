@@ -1,0 +1,10 @@
+---
+http:
+  middlewares:
+    fpp-auth:
+      forwardAuth:
+        address: "{{ fpp_auth_service_url }}"
+    remove-auth-header:
+      headers:
+        customRequestHeaders:
+          Authorization: ''

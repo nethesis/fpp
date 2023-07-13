@@ -1,0 +1,72 @@
+---
+- name: Download fpp
+  ansible.builtin.get_url:
+    url: "{{ fpp_url }}/releases/download/{{ fpp_version }}/fpp_{{ fpp_version }}_linux_amd64.tar.gz"
+    dest: /tmp
+  register: _download_archive
+  until: _download_archive is succeeded
+  retries: 5
+  delay: 2
+  check_mode: false
+
+- name: Install fpp
+  unarchive:
+    src: "/tmp/fpp_{{ fpp_version }}_linux_amd64.tar.gz"
+    dest: /usr/bin
+    remote_src: yes
+    mode: 0755
+    owner: root
+    group: root
+    exclude:
+      - CHANGELOG.md
+      - LICENSE.md
+
+- name: Create fpp working directory
+  ansible.builtin.file:
+    path: /var/local/fpp/
+    state: directory
+    recurse: yes
+
+- name: Create fpp brand directory
+  ansible.builtin.file:
+    path: /var/local/fpp/{{ brand_name }}
+    state: directory
+    recurse: yes
+
+- name: Copy brand credentials file
+  ansible.builtin.copy:
+    dest: "/var/local/fpp/{{ brand_name }}/credentials.json"
+    src: "{{ brand_credentials_file }}"
+
+- name: Generate brand configuration file
+  ansible.builtin.copy:
+    content: |
+      LISTEN=127.0.0.1:{{ brand_http_port }}
+    dest: "/var/local/fpp/{{ brand_name }}/env"
+
+- name: Copy systemd unit file
+  ansible.builtin.copy:
+    dest: /usr/lib/systemd/system/
+    src: fpp@.service
+
+- name: Systemd configuration
+  ansible.builtin.systemd:
+    name: "fpp@{{ brand_name }}"
+    daemon_reload: true
+    enabled: true
+    state: started
+
+- name: Copy traefik /ping configuration
+  ansible.builtin.copy:
+    dest: /etc/traefik/conf.d/ping.yml
+    src: traefik_ping.yml
+
+- name: Generate traefik middlewares configuration
+  ansible.builtin.template:
+    src: traefik_middlewares.yml.j2
+    dest: /etc/traefik/conf.d/traefik_middlewares.yml
+
+- name: Generate traefik brand configuration
+  ansible.builtin.template:
+    src: traefik_brand.yml.j2
+    dest: /etc/traefik/conf.d/{{ brand_name }}.yml

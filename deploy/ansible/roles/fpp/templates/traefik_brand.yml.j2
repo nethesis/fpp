@@ -1,0 +1,34 @@
+---
+http:
+  routers:
+    send-push-{{ brand_name }}:
+      entryPoints:
+        - http
+      middlewares:
+        - fpp-auth
+        - remove-auth-header
+        - strip-brand-{{ brand_name }}
+      rule: PathPrefix(`/{{ brand_name }}/send`)
+      service: fpp-{{ brand_name }}
+    send-push-https-{{ brand_name }}:
+      entryPoints:
+        - https
+      middlewares:
+        - fpp-auth
+        - remove-auth-header
+        - strip-brand-{{ brand_name }}
+      rule: PathPrefix(`/{{ brand_name }}/send`)
+      service: fpp-{{ brand_name }}
+      tls: {}
+  middlewares:
+    strip-brand-{{ brand_name }}:
+      stripPrefix:
+        prefixes:
+          - "/{{ brand_name }}/"
+  services:
+    fpp-{{ brand_name }}:
+      loadBalancer:
+        passHostHeader: false
+        servers:
+          - url: 'http://localhost:{{ brand_http_port }}'
+

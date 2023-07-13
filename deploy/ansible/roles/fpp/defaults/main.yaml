@@ -1,0 +1,9 @@
+---
+fpp_url: https://github.com/nethesis/fpp
+fpp_version: 0.0.1
+
+fpp_auth_service_url: https://my.nethesis.it/auth
+
+brand_name: nethesis
+brand_http_port: 8081
+brand_credentials_file: credentials.json
