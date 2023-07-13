@@ -26,6 +26,9 @@ type Notification struct {
 	CallId string `json:"call-id"`
 	Uuid string `json:"uuid"`
 	Topic string `json:"topic"`
+	Type string `json:"type"`
+	FromUri string `json:"from-uri"`
+	DisplayName string `json:"display-name"`
 }
 
 func ping(c *gin.Context) {
@@ -36,7 +39,7 @@ func audit(result string, response string, notification *Notification) {
 	now := time.Now().Format(time.RFC3339)
 
 	w := csv.NewWriter(os.Stdout)
-	record := []string{now, result, response, notification.Topic, notification.CallId, notification.Uuid}
+	record := []string{now, notification.Type, result, response, notification.Topic, notification.CallId, notification.Uuid}
 	if err := w.Write(record); err != nil {
 		fmt.Fprintln(os.Stderr, "Error writing record to csv:", err)
 	}
@@ -45,17 +48,53 @@ func audit(result string, response string, notification *Notification) {
 
 func send(c *gin.Context) {
 	var notification Notification
+	var message *messaging.Message
 
 	if err := c.BindJSON(&notification); err != nil {
 		c.JSON(http.StatusInternalServerError, Response{Message: "Invalid parameters"})
 		return
 	}
 
-	message := &messaging.Message{
-		Data: map[string]string{ "call-id": notification.CallId, "uuid": notification.Uuid },
-		Topic: notification.Topic,
-	}
+	if notification.Type == "apple" {
+		badge := 0
+		payload := &messaging.APNSPayload {
+			Aps: &messaging.Aps{
+				Badge: &badge,
+				ContentAvailable: true,
+				CustomData: map[string]interface{}{
+					"loc-key": "call",
+					"loc-args": []string{},
+					"call-id": notification.CallId,
+					"uuid": notification.Uuid,
+					"send-time": uint(time.Now().Unix()),
+				},
+			},
+			CustomData: map[string]interface{}{
+				"from-uri": notification.FromUri,
+				"display-name": notification.DisplayName,
+				"pn_ttls": 0,
+				"cuustomPayload": struct{}{},
+			},
+		}
 
+		message = &messaging.Message{
+			APNS: &messaging.APNSConfig{
+				Headers: map[string]string{
+					"apns-priority": "10",
+				},
+				Payload: payload,
+			},
+			Topic: notification.Topic,
+		}
+	} else if notification.Type == "firebase" {
+		message = &messaging.Message{
+			Data: map[string]string{ "call-id": notification.CallId, "uuid": notification.Uuid },
+			Topic: notification.Topic,
+		}
+	} else {
+		c.JSON(http.StatusInternalServerError, Response{Message: "Invalid notification type"})
+		return
+	}
 	response, err := client.Send(ctx, message)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, Response{Message: err.Error()})
