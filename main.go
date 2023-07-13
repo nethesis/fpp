@@ -57,30 +57,39 @@ func send(c *gin.Context) {
 
 	if notification.Type == "apple" {
 		badge := 0
+		alert := &messaging.ApsAlert {
+			Title: notification.CallId,
+			Body: notification.Uuid,
+			LocKey: "call",
+		}
 		payload := &messaging.APNSPayload {
 			Aps: &messaging.Aps{
 				Badge: &badge,
 				ContentAvailable: true,
 				CustomData: map[string]interface{}{
-					"loc-key": "call",
-					"loc-args": []string{},
+			//		"loc-key": "call",
+			//		"loc-args": []string{},
 					"call-id": notification.CallId,
 					"uuid": notification.Uuid,
 					"send-time": uint(time.Now().Unix()),
 				},
+				Alert: alert,
 			},
 			CustomData: map[string]interface{}{
 				"from-uri": notification.FromUri,
 				"display-name": notification.DisplayName,
 				"pn_ttls": 0,
-				"cuustomPayload": struct{}{},
+				"customPayload": struct{}{},
 			},
 		}
 
 		message = &messaging.Message{
+			Data: map[string]string{ "call-id": notification.CallId, "uuid": notification.Uuid },
 			APNS: &messaging.APNSConfig{
 				Headers: map[string]string{
 					"apns-priority": "10",
+					"apns-push-type": "voip",
+					"apns-topic": "it.nethesis.nethcti3.voip",
 				},
 				Payload: payload,
 			},

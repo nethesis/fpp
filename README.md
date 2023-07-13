@@ -22,6 +22,7 @@ The server exposes 2 APIs:
   after the login
   - `uuid`: Flexisip transaction identifier
   - `call-id`: Asterisk call identifier
+  - `
 
 The server can be configured using the following environment variables:
 - `GOOGLE_APPLICATION_CREDENTIALS`: (required) path of the service account JSON file
