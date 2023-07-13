@@ -89,6 +89,6 @@ podman run --network=host --name traefik --rm -v $PWD/traefik.yml:/etc/traefik/t
 
 Send a notification using curl through Traefik, example:
 ```
-curl -H "Accept: application/json" https://<systemid>:<secret>@dev.gs.nethserver.net/nethesis/ping
+curl -H "Accept: application/json" https://<systemid>:<secret>@dev.gs.nethserver.net/nethesis/send
   --data '{"topic": "testmst%nethctiapp.nethserver.net", "uuid": "550e8400-e29b-41d4-a716-446655440000", "call-id": "000001"}'
 ```
