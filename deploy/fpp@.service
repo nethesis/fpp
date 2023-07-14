@@ -1,5 +1,5 @@
 [Unit]
-Description=Firebase Push Proxy
+Description=what the Fuck Push Proxy
 After=network.target
 
 [Service]
@@ -7,10 +7,12 @@ Type=simple
 PrivateTmp=true
 WorkingDirectory=/var/local/fpp/%i
 Environment=GOOGLE_APPLICATION_CREDENTIALS=/var/local/fpp/%i/credentials.json
-EnvironmentFile=-/var/local/fpp/%i/env
+Environment=APPLE_APPLICATION_CREDENTIALS=/var/local/fpp/%i/credentials.p8
+Environment=DB_PATH=/var/local/fpp/%i/db
 Environment=GIN_MODE=release
-StandardError=syslog
-StandardOutput=syslog
+EnvironmentFile=/var/local/fpp/%i/env
+StandardError=journal
+StandardOutput=journal
 User=nobody
 Group=nobody
 ExecStart=/usr/bin/fpp
