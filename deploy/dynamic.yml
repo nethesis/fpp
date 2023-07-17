@@ -14,7 +14,7 @@ http:
         - https
       middlewares:
         - strip-brand
-      rule: PathPrefix(`/nethesis/register`)
+      rule: PathPrefix(`/nethesis/register`) || PathPrefix(`/nethesis/deregister`)
       service: fpp-nethesis
       tls: {}
     register-dev:
@@ -22,7 +22,7 @@ http:
         - https
       middlewares:
         - strip-brand
-      rule: PathPrefix(`/dev/register`)
+      rule: PathPrefix(`/dev/register`) || PathPrefix(`/dev/deregister`)
       service: fpp-dev
       tls: {}
     send-push-nethesis:
