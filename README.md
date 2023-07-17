@@ -23,10 +23,11 @@ GOOGLE_APPLICATION_CREDENTIALS="./credentials.json" APPLE_APPLICATION_CREDENTIAL
 The server exposes 3 APIs:
 
 - `/ping`: GET, just test if the service is online
-- `/register`: POST, register a iOS device. The iOS device token is validated against Apple APN using a silent notification.
-  If the device token is valid, the server will save the token associated to the given topic.
+- `/register`: POST, register a iOS device. Both the device token and the topic must be a string of 64 hex characters.
+  If device token and topic are valid, the server will save the token associated to the given topic.
   Token/topic association will expire after 356 days: applications must be opened at least once a year
   to keep receiving notifications.
+  This endpoint must be validated with an header `Instance-Token`, see `INSTANCE_TOKEN` env vaa.
   Parameters:
   - `token`: Apple Device token
   - `topic`: Unique topic to identify the mobile device. The topic is the sha256sum of the token received by the client
@@ -50,6 +51,9 @@ The server can be configured using the following environment variables:
 - `APPLE_TOPIC`: topic for Apple APN, like `it.nethesis.nethcti3.voip` (note the `.voip` suffix)
 - `APPLE_ENVIRONMENT` can be `production` or `sandbox`
 - `DB_PATH`: path for [Badger](https://github.com/dgraph-io/badger) database
+- `INSTANCE_TOKEN`: a SHA25sum hash string representing a token for this instance.
+   Requests to `/register` token are validated against this token.
+   This token must be compiled inside each mobile app
 
 Send a notification using curl, example:
 ```
@@ -59,7 +63,7 @@ curl -H "Accept: application/json" http://localhost:8080/send \
 
 Register an iOS device, example:
 ```
-curl -H "Accept: application/json" http://localhost:8080/register \
+curl -H "Accept: application/json" -H "Instance-Token: 8dc657c146dc410790adb71d0be62c591b9bfda9c1c889972c0d2a095b71f733" "http://localhost:8080/register \
   --data '{"token": "A6F31E46858BF045475A529F709D781B8D48507DFFDCEBBB1DCEF907FD58AC05", "topic": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}'
 ```
 
@@ -108,8 +112,8 @@ Example of errored request:
 The deploy procedure should:
 - configure 2 fpp instances for every branding: one for production and one for sandbox
 - configure a Traefik instance to authenticate the requests and forward them to the right fpp instance:
-  - `ping` and `send` endopoints must be authenticated to `my.nethesis.it` with basic authentication
-  - `register` endpoint should be not authenticated
+  - `ping` and `send` endopoints must be authenticated by Trafik using `my.nethesis.it`
+  - `register` endpoint should be not authenticated by Traefik
 
 
 Build and deploy on Fedora server:

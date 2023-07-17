@@ -4,6 +4,7 @@ import (
 	"os"
 	"fmt"
 	"time"
+	"regexp"
 	"context"
 	"net/http"
 	"encoding/csv"
@@ -24,6 +25,7 @@ var fbClient *messaging.Client
 var ctx context.Context
 var db *badger.DB
 var ticker *time.Ticker
+var instanceToken string
 
 type Response struct {
 	Message string `json:"message"`
@@ -43,6 +45,24 @@ type Registration struct {
 	Topic string `json:"topic"`
 }
 
+
+func InstanceTokenAuth() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token := c.GetHeader("Instance-Token")
+
+		if token == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Instance-Token header required"})
+			return
+		}
+
+		if token != instanceToken {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid Instance-Token header"})
+			return
+		}
+
+		c.Next()
+	}
+}
 
 func ping(c *gin.Context) {
 	c.JSON(http.StatusOK, Response{Message: "pong"})
@@ -72,26 +92,20 @@ func register(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, Response{Message: "Invalid parameters"})
 		return
 	}
-	
-	// Send a background silent notification to verify if the device token is valid
-	notification := &apns2.Notification{}
-	notification.DeviceToken = registration.Token
-	notification.Topic = apnTopic
-	notification.PushType = apns2.PushTypeBackground
-	notification.Payload = []byte(`{
-			"aps" : {
-				"badge" : 0,
-				"content-available": 1
-			}
-		}
-	`)
-	res, err := apnClient.Push(notification)
 
-	if err != nil || res.StatusCode != 200 {
-		auditRegister("error", "apple", res.Reason, registration.Token, registration.Topic)
-		c.JSON(http.StatusInternalServerError, Response{Message: res.Reason})
+	// Check token and topic format
+	r, _ := regexp.Compile("^[0-9a-fA-F]+$")
+	if ! r.MatchString(registration.Token) || len(registration.Token) != 64 {
+		auditRegister("error", "apple", "invalid token", registration.Token, registration.Topic)
+		c.JSON(http.StatusInternalServerError, Response{Message: "Invalid token"})
 		return
 	}
+	if ! r.MatchString(registration.Topic) || len(registration.Topic) != 64 {
+		auditRegister("error", "apple", "invalid topic", registration.Token, registration.Topic)
+		c.JSON(http.StatusInternalServerError, Response{Message: "Invalid topic"})
+		return
+	}
+
 
 	// If the token is valid store <topic>:<device> key/value
 	// Set a TTL of one year, the TTL is updated on each use
@@ -106,7 +120,7 @@ func register(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, Response{Message: dberr.Error()})
 		return
 	}
-	auditRegister("success", "apple", res.ApnsID, registration.Token, registration.Topic)
+	auditRegister("success", "apple", "ok", registration.Token, registration.Topic)
 	c.JSON(http.StatusOK, Response{Message: "success"})
 }
 
@@ -296,6 +310,14 @@ func initDB() (* badger.DB){
 	return db
 }
 
+func initInstance() {
+	instanceToken = os.Getenv("INSTANCE_TOKEN")
+	if len(instanceToken) == 0 {
+		fmt.Fprintln(os.Stderr, "Error initializing instance token: empty environment variable")
+		os.Exit(6)
+	}
+}
+
 func main() {
 	// Connect to Firebase for Android notifications
 	initFirebase()
@@ -304,11 +326,13 @@ func main() {
 	// Initialize DB to store iOS device token
 	db = initDB()
 	defer db.Close()
+	// Initialize instance info
+	initInstance()
 
 	router := gin.Default()
 	router.GET("/ping", ping)
 	router.POST("/send", send)
-	router.POST("/register", register)
+	router.POST("/register", InstanceTokenAuth(), register)
 
 	listen := os.Getenv("LISTEN")
 	if len(listen) == 0 {
