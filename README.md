@@ -27,13 +27,13 @@ The server exposes 3 APIs:
   If device token and topic are valid, the server will save the token associated to the given topic.
   Token/topic association will expire after 356 days: applications must be opened at least once a year
   to keep receiving notifications.
-  This endpoint must be validated with an header `Instance-Token`, see `INSTANCE_TOKEN` env vaa.
+  This endpoint must be validated with an header `Instance-Token`, see `INSTANCE_TOKEN` env var.
   Parameters:
   - `token`: Apple Device token
   - `topic`: Unique topic to identify the mobile device. The topic is the sha256sum of the token received by the client
 - `/deregister`: POST, deregister an iOS device. Both the device token and the topic must be a string of 64 hex characters.
   If the tuple token/topic is valid, the tuple will be deleted from the database.
-  This endpoint must be validated with an header `Instance-Token`, see `INSTANCE_TOKEN` env vaa.
+  This endpoint must be validated with an header `Instance-Token`, see `INSTANCE_TOKEN` env var.
   Parameters:
   - `token`: Apple Device token
   - `topic`: Unique topic to identify the mobile device. The topic is the sha256sum of the token received by the client
@@ -75,7 +75,7 @@ curl -H "Accept: application/json" -H "Instance-Token: 8dc657c146dc410790adb71d0
 
 ## Logging
 
-Each requess is logged to standard error in CSV format to ease future data analisys.
+Each request is logged to standard error in CSV format to ease future data analysis.
 The standard error is redirect to syslog using systemd unit.
 
 Each line can have 2 different formats.
@@ -84,42 +84,39 @@ Each line can have 2 different formats.
 
 Log of `send` requests has the following format:
 ```
-datetime_rfc3339,type,result,response,topic,callid,uuid
+datetime_rfc3339,action,type,result,response,topic,callid,uuid
 ```
 
-Example of successfull request:
+Example of successful request:
 ```
-2023-07-12T09:16:15Z,apple,success,projects/nethcti-f0ff1/messages/1789059028385963799,a21cec13ef9cc70f2cf56d7c696476d6247b2a6e690bb8251cdaf559771f8529,1234,334455
-```
-
-Example of errored requst:
-```
-2023-07-12T09:16:18Z,firebase,error,invalid topic,a21cec13ef9cc70f2cf56d7c696476d6247b2a6e690bb8251cdaf559771f8529,1234,334455
+2023-07-17T13:06:08Z,send,apple,success,9F070589-4EAA-52F9-2256-1097235DB00E,896dbae25cf505e8d051e4cb23549c1e34954310cb3aeffee6222715256b31a4,9feef923-0e01-4ba2-bc8e-52fc25a49965,<urn:uuid:32919e39-bc2a-006e-863d-7528bf8d2b46>
 ```
 
+On success, the `response` field contains the Firebase/APN notification id.
+On error, the `response` field contains the specific error message.
 
-### Register
+### Register and Deregister
 
-Log of `register` request has the following format:
+Log of `register` and `deregister` request has the following format:
 ```
-datetime_rfc3339,type,result,response,token,topic
-```
-
-Example of successfull request:
-```
+datetime_rfc3339,action,type,result,response,token,topic
 ```
 
-Example of errored request:
+Example of successful request:
 ```
+2023-07-17T14:18:07Z,register,apple,success,ok,BC3CBEBF386158AEF1E54D2E4F7721A1944A11E25AEF86D9F6F809716F15C6B1,8c557d2568606950414e08caf498f42df9c7a5e62b6fd26dc34f9e5dab8c00ad
 ```
+
+On error, the `response` field contains the specific error message.
 
 ## Build and deploy
 
 The deploy procedure should:
-- configure 2 fpp instances for every branding: one for production and one for sandbox
-- configure a Traefik instance to authenticate the requests and forward them to the right fpp instance:
-  - `ping` and `send` endopoints must be authenticated by Trafik using `my.nethesis.it`
-  - `register` and `deregister` endpoints should be not authenticated by Traefik
+- configure 2 FPP instances for every branding: one for production and one for sandbox;
+  the sandbox environment is mandatory to test iOS applications installed from [TestFlight](https://developer.apple.com/testflight/)
+- configure a Traefik instance to authenticate the requests and forward them to the right FPP instance:
+  - `ping` and `send` endpoints must be authenticated by Traefik using `my.nethesis.it`
+  - `register` and `deregister` endpoints should not be authenticated by Traefik
 
 
 Build and deploy on Fedora server:
@@ -135,7 +132,13 @@ systemctl daemon-reload
 
 mkdir -p /var/local/fpp/nethesis
 cp credentials.json /var/local/fpp/nethesis
+cp credentials.p8 /var/local/fpp/nethesis
 echo LISTEN=127.0.0.1:9191 > /var/local/fpp/nethesis/env
+echo APPLE_TEAM_ID=XXXXXXXXXX >> /var/local/fpp/nethesis/env
+APPLE_KEY_ID=YYYYYYYYYY >> /var/local/fpp/nethesis/env
+echo APPLE_TOPIC=it.nethesis.nethcti3.voip >> /var/local/fpp/nethesis/env
+echo APPLE_ENVIRONMENT=production >> /var/local/fpp/nethesis/env
+echo INSTANCE_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx >> /var/local/fpp/nethesis/env
 chown -R nobody:nobody /var/local/fpp/nethesis
 systemctl enable --now fpp@nethesis
 ```
