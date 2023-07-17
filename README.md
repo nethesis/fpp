@@ -1,38 +1,61 @@
-# FPP (Firebase Push Proxy)
+# FPP (what the Fuck Push Proxy)
 
-This proxy receive a notification request and forward it to [Google Firebase Cloud Messaging](https://firebase.google.com/docs/cloud-messaging).
+This proxy receive a notification request and forward it:
+- to [Google Firebase Cloud Messaging](https://firebase.google.com/docs/cloud-messaging) for Android phones
+- to [Apple APN](https://developer.apple.com/documentation/usernotifications) for iOS phones
+
 It's designed to be used a push notification proxy for [Android NethCTI app](https://github.com/nethesis/nethcti-app-android)
 and [iOS NethCTI app](https://github.com/nethesis/nethcti-app-iphone).
 
-Before starting the server, make sure to get a valid [service account in JSON format](https://firebase.google.com/docs/admin/setup).
+Before starting the server, make sure to get:
+- a valid [Firebase service account in JSON format](https://firebase.google.com/docs/admin/setup)
+- a valid Apple APN p8 credentials file
 
 ## Usage
 
-Download a service account and save it to a file named `credentials.json`, then execute the server:
+First download a Firebase service account and save it to a file named `credentials.json` and 
+an Apple service account and save it to a file named `credentials.p8`.
+Then execute the server:
 ```
-GOOGLE_APPLICATION_CREDENTIALS="./credentials.json" ./fpp
+GOOGLE_APPLICATION_CREDENTIALS="./credentials.json" APPLE_APPLICATION_CREDENTIALS="./credentials.p8" ./fpp
 ```
 
-The server exposes 2 APIs:
+The server exposes 3 APIs:
 
 - `/ping`: GET, just test if the service is online
-- `/send`: POST, send a wake-up notification to a device via Firebase
+- `/register`: POST, register a iOS device. If the device token is valid, the server will save the token associated to the given topic
   Parameters:
+  - `token`: Apple Device token
+  - `topic`: Unique topic to identify the mobile device. The topic is the sha256sum of the token received by the client
+- `/send`: POST, send a wake-up notification to a device
+  Parameters:
+  - `type`: Notification type, can be `apple` or `firebase`
   - `topic`: Unique topic to identify the mobile device. The topic is the sha256sum of the token received by the client
   after the login
   - `uuid`: Flexisip transaction identifier
   - `call-id`: Asterisk call identifier
-  - `
+  - `from-uri`: Caller SIP URI
+  - `display-name`: Caller display name
 
 The server can be configured using the following environment variables:
 - `GOOGLE_APPLICATION_CREDENTIALS`: (required) path of the service account JSON file
 - `LISTEN`: (optional) listen address and port, default is `127.0.0.1:8080`
-
+- `APPLE_TEAM_ID`: Apple Team ID for p8 credentials
+- `APPLE_KEY_ID`: Apple Key ID for p8 credentials
+- `APPLE_TOPIC`: topic for Apple APN, like `it.nethesis.nethcti3.voip` (note the `.voip` suffix)
+- `APPLE_ENVIRONMENT` can be `production` or `sandbox`
+- `DB_PATH`: path for [Badger](https://github.com/dgraph-io/badger) database
 
 Send a notification using curl, example:
 ```
 curl -H "Accept: application/json" http://localhost:8080/send \
-  --data '{"topic": "testmst%nethctiapp.nethserver.net", "uuid": "550e8400-e29b-41d4-a716-446655440000", "call-id": "000001"}'
+  --data '{"type": "firebase", "topic": "b62aabfc0699e752fdbfda027433342f7bd20715da07049956d0daf20e34f326", "uuid": "550e8400-e29b-41d4-a716-446655440000", "call-id": "000001", "display-name": "Test user", "from-uri": "sip:401@127.0.0.1"}'
+```
+
+Register an iOS device, example:
+```
+curl -H "Accept: application/json" http://localhost:8080/register \
+  --data '{"token": "A6F31E46858BF045475A529F709D781B8D48507DFFDCEBBB1DCEF907FD58AC05", "topic": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}'
 ```
 
 ## Logging
@@ -42,24 +65,26 @@ The standard error is redirect to syslog using systemd unit.
 
 Each line has the following format:
 ```
-datetime_rfc3339,result,response,topic,callid,uuid
+datetime_rfc3339,type,result,response,topic,callid,uuid
 ```
 
 Example of success request:
 ```
-2023-07-12T09:16:15Z,success,projects/nethcti-f0ff1/messages/1789059028385963799,a21cec13ef9cc70f2cf56d7c696476d6247b2a6e690bb8251cdaf559771f8529,1234,334455
+2023-07-12T09:16:15Z,apple,success,projects/nethcti-f0ff1/messages/1789059028385963799,a21cec13ef9cc70f2cf56d7c696476d6247b2a6e690bb8251cdaf559771f8529,1234,334455
 ```
 
 Example of errored requst:
 ```
-2023-07-12T09:16:18Z,error,invalid topic,a21cec13ef9cc70f2cf56d7c696476d6247b2a6e690bb8251cdaf559771f8529,1234,334455
+2023-07-12T09:16:18Z,firebase,error,invalid topic,a21cec13ef9cc70f2cf56d7c696476d6247b2a6e690bb8251cdaf559771f8529,1234,334455
 ```
 
 ## Build and deploy
 
 The deploy procedure will:
-- configure a fpp instance for every branding
-- configure a Traefik instance to authenticate the requests and forward them to the right fpp instance
+- configure 2 fpp instances for every branding: one for production and one for sandbox
+- configure a Traefik instance to authenticate the requests and forward them to the right fpp instance:
+  - `ping` and `send` endopint must be authenticated
+  - `register` endpoint bust be not authenticated
 
 
 Build and deploy on Fedora server:
