@@ -23,15 +23,20 @@ GOOGLE_APPLICATION_CREDENTIALS="./credentials.json" APPLE_APPLICATION_CREDENTIAL
 The server exposes 3 APIs:
 
 - `/ping`: GET, just test if the service is online
-- `/register`: POST, register a iOS device. If the device token is valid, the server will save the token associated to the given topic
+- `/register`: POST, register a iOS device. The iOS device token is validated against Apple APN using a silent notification.
+  If the device token is valid, the server will save the token associated to the given topic.
+  Token/topic association will expire after 356 days: applications must be opened at least once a year
+  to keep receiving notifications.
   Parameters:
   - `token`: Apple Device token
   - `topic`: Unique topic to identify the mobile device. The topic is the sha256sum of the token received by the client
 - `/send`: POST, send a wake-up notification to a device
   Parameters:
-  - `type`: Notification type, can be `apple` or `firebase`
+  - `type`: Notification type, can be `apple` or `firebase`. If `type` is `apple`, the
+    iOS device should already have been registered: the server will wake up the device token
+    corresponding to the given `topic`
   - `topic`: Unique topic to identify the mobile device. The topic is the sha256sum of the token received by the client
-  after the login
+    after the login
   - `uuid`: Flexisip transaction identifier
   - `call-id`: Asterisk call identifier
   - `from-uri`: Caller SIP URI
@@ -63,12 +68,16 @@ curl -H "Accept: application/json" http://localhost:8080/register \
 Each requess is logged to standard error in CSV format to ease future data analisys.
 The standard error is redirect to syslog using systemd unit.
 
-Each line has the following format:
+Each line can have 2 different formats.
+
+### Send
+
+Log of `send` requests has the following format:
 ```
 datetime_rfc3339,type,result,response,topic,callid,uuid
 ```
 
-Example of success request:
+Example of successfull request:
 ```
 2023-07-12T09:16:15Z,apple,success,projects/nethcti-f0ff1/messages/1789059028385963799,a21cec13ef9cc70f2cf56d7c696476d6247b2a6e690bb8251cdaf559771f8529,1234,334455
 ```
@@ -78,13 +87,29 @@ Example of errored requst:
 2023-07-12T09:16:18Z,firebase,error,invalid topic,a21cec13ef9cc70f2cf56d7c696476d6247b2a6e690bb8251cdaf559771f8529,1234,334455
 ```
 
+
+### Register
+
+Log of `register` request has the following format:
+```
+datetime_rfc3339,type,result,response,token,topic
+```
+
+Example of successfull request:
+```
+```
+
+Example of errored request:
+```
+```
+
 ## Build and deploy
 
-The deploy procedure will:
+The deploy procedure should:
 - configure 2 fpp instances for every branding: one for production and one for sandbox
 - configure a Traefik instance to authenticate the requests and forward them to the right fpp instance:
-  - `ping` and `send` endopint must be authenticated
-  - `register` endpoint bust be not authenticated
+  - `ping` and `send` endopoints must be authenticated to `my.nethesis.it` with basic authentication
+  - `register` endpoint should be not authenticated
 
 
 Build and deploy on Fedora server:

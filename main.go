@@ -48,17 +48,22 @@ func ping(c *gin.Context) {
 	c.JSON(http.StatusOK, Response{Message: "pong"})
 }
 
-func audit(result string, response string, notification *Notification) {
+func audit(record []string) {
 	now := time.Now().Format(time.RFC3339)
-
 	w := csv.NewWriter(os.Stdout)
-	record := []string{now, notification.Type, result, response, notification.Topic, notification.CallId, notification.Uuid}
-	if err := w.Write(record); err != nil {
+	if err := w.Write(append([]string{now}, record...)); err != nil {
 		fmt.Fprintln(os.Stderr, "Error writing record to csv:", err)
 	}
 	w.Flush()
 }
 
+func auditSend(result string, response string, notification *Notification) {
+	audit([]string{"send", notification.Type, result, response, notification.Topic, notification.CallId, notification.Uuid})
+}
+
+func auditRegister(result string, rtype string, response string, token string, topic string) {
+	audit([]string{"register", rtype, result, response, token, topic})
+}
 
 func register(c *gin.Context) {
 	var registration Registration
@@ -83,6 +88,7 @@ func register(c *gin.Context) {
 	res, err := apnClient.Push(notification)
 
 	if err != nil || res.StatusCode != 200 {
+		auditRegister("error", "apple", res.Reason, registration.Token, registration.Topic)
 		c.JSON(http.StatusInternalServerError, Response{Message: res.Reason})
 		return
 	}
@@ -96,9 +102,11 @@ func register(c *gin.Context) {
 	})
 
 	if dberr != nil {
+		auditRegister("error", "apple", dberr.Error(), registration.Token, registration.Topic)
 		c.JSON(http.StatusInternalServerError, Response{Message: dberr.Error()})
 		return
 	}
+	auditRegister("success", "apple", res.ApnsID, registration.Token, registration.Topic)
 	c.JSON(http.StatusOK, Response{Message: "success"})
 }
 
@@ -153,13 +161,13 @@ func send(c *gin.Context) {
 		res, err := apnClient.Push(apnNotif)
 		if res == nil {
 			c.JSON(http.StatusInternalServerError, Response{Message: err.Error()})
-			audit("error", err.Error(), &notification)
+			auditSend("error", err.Error(), &notification)
 			return
 		}
 
 		if res.StatusCode != 200 {
 			c.JSON(http.StatusInternalServerError, Response{Message: res.Reason})
-			audit("error", res.Reason, &notification)
+			auditSend("error", res.Reason, &notification)
 			return
 		}
 
@@ -171,7 +179,7 @@ func send(c *gin.Context) {
 			return err
 		})
 
-		audit("success", res.ApnsID, &notification)
+		auditSend("success", res.ApnsID, &notification)
 		c.JSON(http.StatusOK, Response{Message: res.ApnsID})
 		return
 	} else if notification.Type == "firebase" {
@@ -182,11 +190,11 @@ func send(c *gin.Context) {
 		response, err := fbClient.Send(ctx, message)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, Response{Message: err.Error()})
-			audit("error", err.Error(), &notification)
+			auditSend("error", err.Error(), &notification)
 			return
 		}
 
-		audit("success", response, &notification)
+		auditSend("success", response, &notification)
 		c.JSON(http.StatusOK, Response{Message: response})
 		return
 	} else {
