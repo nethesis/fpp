@@ -1,44 +1,32 @@
 http:
   routers:
-    ping:
-      entryPoints:
-      - http
-      rule: Path(`/ping`)
-      middlewares:
-      - my-auth
-      service: ping@internal
     ping-https:
       entryPoints:
       - https
-      rule: Host(`dev.gs.nethserver.net`) && Path(`/ping`)
+      rule: Host(`fpp.gs.nethserver.net`) && Path(`/ping`)
       middlewares:
       - my-auth
       service: ping@internal
+      tls:
+        certResolver: letsencrypt
     register-nethesis:
       entryPoints:
-        - http
-      middlewares:
-        - strip-brand
-      rule: PathPrefix(`/nethesis/register`)
-      service: fpp-nethesis
-    register-nethesis-https:
-      entryPoints:
         - https
       middlewares:
         - strip-brand
       rule: PathPrefix(`/nethesis/register`)
       service: fpp-nethesis
+      tls: {}
+    register-dev:
+      entryPoints:
+        - https
+      middlewares:
+        - strip-brand
+      rule: PathPrefix(`/dev/register`)
+      service: fpp-dev
+      tls: {}
     send-push-nethesis:
       entryPoints:
-        - http
-      middlewares:
-        - my-auth
-        - remove-auth-header
-        - strip-brand
-      rule: PathPrefix(`/nethesis/`)
-      service: fpp-nethesis
-    send-push-https-nethesis:
-      entryPoints:
         - https
       middlewares:
         - my-auth
@@ -46,6 +34,17 @@ http:
         - strip-brand
       rule: PathPrefix(`/nethesis/`)
       service: fpp-nethesis
+      tls: {}
+    send-push-dev:
+      entryPoints:
+        - https
+      middlewares:
+        - my-auth
+        - remove-auth-header
+        - strip-brand
+      rule: PathPrefix(`/dev/`)
+      service: fpp-dev
+      tls: {}
   middlewares:
     my-auth:
       forwardAuth:
@@ -58,10 +57,16 @@ http:
       stripPrefix:
         prefixes:
           - "/nethesis"
+          - "/dev"
   services:
     fpp-nethesis:
       loadBalancer:
         passHostHeader: false
         servers:
           - url: 'http://localhost:9191'
+    fpp-dev:
+      loadBalancer:
+        passHostHeader: false
+        servers:
+          - url: 'http://localhost:9292'
 
