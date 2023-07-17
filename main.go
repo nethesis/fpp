@@ -85,6 +85,10 @@ func auditRegister(result string, rtype string, response string, token string, t
 	audit([]string{"register", rtype, result, response, token, topic})
 }
 
+func auditDeregister(result string, rtype string, response string, token string, topic string) {
+	audit([]string{"deregister", rtype, result, response, token, topic})
+}
+
 func register(c *gin.Context) {
 	var registration Registration
 
@@ -123,6 +127,66 @@ func register(c *gin.Context) {
 	auditRegister("success", "apple", "ok", registration.Token, registration.Topic)
 	c.JSON(http.StatusOK, Response{Message: "success"})
 }
+
+func deregister(c *gin.Context) {
+	var registration Registration
+	var deviceToken []byte
+
+	if err := c.BindJSON(&registration); err != nil {
+		c.JSON(http.StatusInternalServerError, Response{Message: "Invalid parameters"})
+		return
+	}
+
+	// Check token and topic format
+	r, _ := regexp.Compile("^[0-9a-fA-F]+$")
+	if ! r.MatchString(registration.Token) || len(registration.Token) != 64 {
+		auditDeregister("error", "apple", "invalid token", registration.Token, registration.Topic)
+		c.JSON(http.StatusInternalServerError, Response{Message: "Invalid token"})
+		return
+	}
+	if ! r.MatchString(registration.Topic) || len(registration.Topic) != 64 {
+		auditDeregister("error", "apple", "invalid topic", registration.Token, registration.Topic)
+		c.JSON(http.StatusInternalServerError, Response{Message: "Invalid topic"})
+		return
+	}
+
+	// Check if tuple key/topic matches
+	err := db.View(func(txn *badger.Txn) error {
+		item, err := txn.Get([]byte(registration.Topic))
+
+		if err != nil {
+			auditDeregister("error", "apple", "not topic found", registration.Token, registration.Topic)
+			c.JSON(http.StatusInternalServerError, Response{Message: "No topic found"})
+			return err
+		}
+		ierr := item.Value(func(val []byte) error {
+			deviceToken = make([]byte, len(val))
+			copy(deviceToken, val)
+			return nil
+		})
+		return ierr
+	})
+	if err != nil || string(deviceToken[:]) != registration.Token {
+		auditDeregister("error", "apple", "invalid tuple", registration.Token, registration.Topic)
+		c.JSON(http.StatusInternalServerError, Response{Message: "Invalid token/topic tuple"})
+		return
+	}
+
+	// Delete token/topic tuple
+	dberr := db.Update(func(txn *badger.Txn) error {
+		err := txn.Delete([]byte(registration.Topic))
+		return err
+	})
+
+	if dberr != nil {
+		auditDeregister("error", "apple", dberr.Error(), registration.Token, registration.Topic)
+		c.JSON(http.StatusInternalServerError, Response{Message: dberr.Error()})
+		return
+	}
+	auditDeregister("success", "apple", "ok", registration.Token, registration.Topic)
+	c.JSON(http.StatusOK, Response{Message: "success"})
+}
+
 
 func send(c *gin.Context) {
 	var notification Notification
@@ -333,6 +397,7 @@ func main() {
 	router.GET("/ping", ping)
 	router.POST("/send", send)
 	router.POST("/register", InstanceTokenAuth(), register)
+	router.POST("/deregister", InstanceTokenAuth(), deregister)
 
 	listen := os.Getenv("LISTEN")
 	if len(listen) == 0 {

@@ -31,6 +31,12 @@ The server exposes 3 APIs:
   Parameters:
   - `token`: Apple Device token
   - `topic`: Unique topic to identify the mobile device. The topic is the sha256sum of the token received by the client
+- `/deregister`: POST, deregister an iOS device. Both the device token and the topic must be a string of 64 hex characters.
+  If the tuple token/topic is valid, the tuple will be deleted from the database.
+  This endpoint must be validated with an header `Instance-Token`, see `INSTANCE_TOKEN` env vaa.
+  Parameters:
+  - `token`: Apple Device token
+  - `topic`: Unique topic to identify the mobile device. The topic is the sha256sum of the token received by the client
 - `/send`: POST, send a wake-up notification to a device
   Parameters:
   - `type`: Notification type, can be `apple` or `firebase`. If `type` is `apple`, the
@@ -52,7 +58,7 @@ The server can be configured using the following environment variables:
 - `APPLE_ENVIRONMENT` can be `production` or `sandbox`
 - `DB_PATH`: path for [Badger](https://github.com/dgraph-io/badger) database
 - `INSTANCE_TOKEN`: a SHA25sum hash string representing a token for this instance.
-   Requests to `/register` token are validated against this token.
+   Requests to `/register` and `/deregister` token are validated against this token.
    This token must be compiled inside each mobile app
 
 Send a notification using curl, example:
@@ -113,7 +119,7 @@ The deploy procedure should:
 - configure 2 fpp instances for every branding: one for production and one for sandbox
 - configure a Traefik instance to authenticate the requests and forward them to the right fpp instance:
   - `ping` and `send` endopoints must be authenticated by Trafik using `my.nethesis.it`
-  - `register` endpoint should be not authenticated by Traefik
+  - `register` and `deregister` endpoints should be not authenticated by Traefik
 
 
 Build and deploy on Fedora server:
@@ -144,6 +150,5 @@ podman run --network=host --name traefik --rm -v $PWD/traefik.yml:/etc/traefik/t
 
 Send a notification using curl through Traefik, example:
 ```
-curl -H "Accept: application/json" https://<systemid>:<secret>@dev.gs.nethserver.net/nethesis/send
-  --data '{"topic": "testmst%nethctiapp.nethserver.net", "uuid": "550e8400-e29b-41d4-a716-446655440000", "call-id": "000001"}'
+curl -H "Accept: application/json" https://<systemid>:<secret>@dev.gs.nethserver.net/nethesis/send --data '{ ... }'
 ```
