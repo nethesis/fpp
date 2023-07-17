@@ -64,7 +64,7 @@ The server can be configured using the following environment variables:
 Send a notification using curl, example:
 ```
 curl -H "Accept: application/json" http://localhost:8080/send \
-  --data '{"type": "firebase", "topic": "b62aabfc0699e752fdbfda027433342f7bd20715da07049956d0daf20e34f326", "uuid": "550e8400-e29b-41d4-a716-446655440000", "call-id": "000001", "display-name": "Test user", "from-uri": "sip:401@127.0.0.1"}'
+  --data '{"type": "firebase", "topic": "b62aabfc0699e752fdbfda027433342f7bd20715da07049956d0daf20e34f326", "uuid": "550e8400-e29b-41d4-a716-446655440000", "call-id": "9b5ce40a-b167-41b4-b245-afbc51fc74ec&to=sip%3A91402", "display-name": "Test user", "from-uri": "sip:401@127.0.0.1"}'
 ```
 
 Register an iOS device, example:
