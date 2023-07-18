@@ -4,6 +4,7 @@ import (
 	"os"
 	"fmt"
 	"time"
+	"errors"
 	"regexp"
 	"context"
 	"net/http"
@@ -13,10 +14,13 @@ import (
 
 	firebase "firebase.google.com/go"
 	"firebase.google.com/go/messaging"
+
 	"github.com/sideshow/apns2"
 	"github.com/sideshow/apns2/token"
+
 	badger "github.com/dgraph-io/badger/v4"
 	"github.com/go-co-op/gocron"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -262,9 +266,12 @@ func send(c *gin.Context) {
 			item, err := txn.Get([]byte(notification.Topic))
 
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, Response{Message: "No topic found"})
-				return err
+				return errors.New("No topic found")
 			}
+			if item.IsDeletedOrExpired() {
+				return errors.New("Topic deleted or expired")
+			}
+
 			ierr := item.Value(func(val []byte) error {
 				deviceToken = make([]byte, len(val))
 				copy(deviceToken, val)
@@ -274,7 +281,7 @@ func send(c *gin.Context) {
 		})
 		
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, Response{Message: "No device token found"})
+			c.JSON(http.StatusInternalServerError, Response{Message: err.Error()})
 			return
 		}
 		apnNotif := &apns2.Notification{}
