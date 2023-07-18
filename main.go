@@ -262,6 +262,9 @@ func send(c *gin.Context) {
 		return
 	} else if notification.Type == "firebase" {
 		message = &messaging.Message{
+			Android: &messaging.AndroidConfig {
+				Priority: "high",
+			},
 			Data: map[string]string{ "call-id": notification.CallId, "uuid": notification.Uuid },
 			Topic: notification.Topic,
 		}
