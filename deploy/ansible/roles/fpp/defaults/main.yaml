@@ -6,4 +6,10 @@ fpp_auth_service_url: https://my.nethesis.it/auth
 
 brand_name: nethesis
 brand_http_port: 8081
-brand_credentials_file: credentials.json
+brand_google_credentials_file: credentials.json
+brand_apple_credentials_file: credentials.p8
+brand_apple_team_id: 4tf7of1hqb
+brand_apple_key_id: cit75cjk43
+brand_apple_topic: com.example.MyApp
+brand_apple_environment: production
+brand_instance_token: 1cde32b5-fdc0-464d-86ee-6a91dab8fe27

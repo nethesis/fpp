@@ -20,6 +20,36 @@ http:
       rule: PathPrefix(`/{{ brand_name }}/send`)
       service: fpp-{{ brand_name }}
       tls: {}
+    register-{{ brand_name }}:
+      entryPoints:
+        - http
+      middlewares:
+        - strip-brand-{{ brand_name }}
+      rule: PathPrefix(`/{{ brand_name }}/register`)
+      service: fpp-{{ brand_name }}
+    register-https-{{ brand_name }}:
+      entryPoints:
+        - https
+      middlewares:
+        - strip-brand-{{ brand_name }}
+      rule: PathPrefix(`/{{ brand_name }}/register`)
+      service: fpp-{{ brand_name }}
+      tls: {}
+    deregister-{{ brand_name }}:
+      entryPoints:
+        - http
+      middlewares:
+        - strip-brand-{{ brand_name }}
+      rule: PathPrefix(`/{{ brand_name }}/deregister`)
+      service: fpp-{{ brand_name }}
+    deregister-https-{{ brand_name }}:
+      entryPoints:
+        - https
+      middlewares:
+        - strip-brand-{{ brand_name }}
+      rule: PathPrefix(`/{{ brand_name }}/deregister`)
+      service: fpp-{{ brand_name }}
+      tls: {}
   middlewares:
     strip-brand-{{ brand_name }}:
       stripPrefix:

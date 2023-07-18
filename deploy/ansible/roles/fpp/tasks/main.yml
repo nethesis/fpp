@@ -33,15 +33,25 @@
     state: directory
     recurse: yes
 
-- name: Copy brand credentials file
+- name: Copy brand Google credentials file
   ansible.builtin.copy:
     dest: "/var/local/fpp/{{ brand_name }}/credentials.json"
-    src: "{{ brand_credentials_file }}"
+    src: "{{ brand_google_credentials_file }}"
+
+- name: Copy brand Apple credentials file
+  ansible.builtin.copy:
+    dest: "/var/local/fpp/{{ brand_name }}/credentials.p8"
+    src: "{{ brand_apple_credentials_file }}"
 
 - name: Generate brand configuration file
   ansible.builtin.copy:
     content: |
       LISTEN=127.0.0.1:{{ brand_http_port }}
+      APPLE_TEAM_ID={{ brand_apple_team_id }}
+      APPLE_KEY_ID={{ brand_apple_key_id }}
+      APPLE_TOPIC={{ brand_apple_topic }}
+      APPLE_ENVIRONMENT={{ brand_apple_environment }}
+      INSTANCE_TOKEN={{ brand_instance_token }}
     dest: "/var/local/fpp/{{ brand_name }}/env"
 
 - name: Copy systemd unit file
