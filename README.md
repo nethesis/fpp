@@ -1,11 +1,16 @@
 # FPP (what the Fuck Push Proxy)
 
-This proxy receive a notification request and forward it:
-- to [Google Firebase Cloud Messaging](https://firebase.google.com/docs/cloud-messaging) for Android phones
-- to [Apple APN](https://developer.apple.com/documentation/usernotifications) for iOS phones
-
-It's designed to be used a push notification proxy for [Android NethCTI app](https://github.com/nethesis/nethcti-app-android)
+This server is designed to be used as push notification proxy for [Android NethCTI app](https://github.com/nethesis/nethcti-app-android).
 and [iOS NethCTI app](https://github.com/nethesis/nethcti-app-iphone).
+
+The proxy handles:
+
+- iOS devices registration and deregistration
+- background push notifications to [Google Firebase Cloud Messaging](https://firebase.google.com/docs/cloud-messaging) for Android phones
+- VoIP push notifications to [Apple APN](https://developer.apple.com/documentation/usernotifications) for iOS devices
+
+Call notifications are sent from [NethVoice VoIP PBX](https://github.com/nethesis/nethserver-nethvoice/).
+The PBX server must have a valid entitlement to access the proxy.
 
 Before starting the server, make sure to get:
 - a valid [Firebase service account in JSON format](https://firebase.google.com/docs/admin/setup)
