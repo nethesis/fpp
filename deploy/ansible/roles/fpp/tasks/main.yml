@@ -21,11 +21,24 @@
       - CHANGELOG.md
       - LICENSE.md
 
+- name: Add the user 'fpp'
+  ansible.builtin.user:
+    name: fpp
+    create_home: false
+
 - name: Create fpp working directory
   ansible.builtin.file:
     path: /var/local/fpp/
     state: directory
     recurse: yes
+
+- name: Create fpp badger dbs directory
+  ansible.builtin.file:
+    path: /var/local/fpp/dbs
+    state: directory
+    recurse: yes
+    owner: fpp
+    group: fpp
 
 - name: Create fpp brand directory
   ansible.builtin.file:
