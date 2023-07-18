@@ -25,9 +25,10 @@ Then execute the server:
 GOOGLE_APPLICATION_CREDENTIALS="./credentials.json" APPLE_APPLICATION_CREDENTIALS="./credentials.p8" ./fpp
 ```
 
-The server exposes 3 APIs:
+The server exposes the following APIs:
 
 - `/ping`: GET, just test if the service is online
+- `/metrics`: GET, return metrics in Prometheus format
 - `/register`: POST, register a iOS device. Both the device token and the topic must be a string of 64 hex characters.
   If device token and topic are valid, the server will save the token associated to the given topic.
   Token/topic association will expire after 356 days: applications must be opened at least once a year
@@ -113,6 +114,64 @@ Example of successful request:
 ```
 
 On error, the `response` field contains the specific error message.
+
+## Metrics
+
+The `/metrics` endpoint returns [basic proces information](https://pkg.go.dev/github.com/prometheus/client_golang/prometheus/collectors#NewProcessCollector)
+plus the following metrics:
+- Number of registered devices
+- Number of sent notifications
+- Number of successfull Apple APN notifications
+- Number of errored Apple APN notifications
+- Number of successfull Google Firebase notifications
+- Number of errored Google Firebase notifications
+
+Example:
+```
+# HELP fpp_apn_error_count Number of errored Apple APN notifications.
+# TYPE fpp_apn_error_count counter
+fpp_apn_error_count 0
+# HELP fpp_apn_success_count Number of successfull Apple APN notifications.
+# TYPE fpp_apn_success_count counter
+fpp_apn_success_count 0
+# HELP fpp_firebase_error_count Number of errored Google Firebase notifications.
+# TYPE fpp_firebase_error_count counter
+fpp_firebase_error_count 0
+# HELP fpp_firebase_success_count Number of successfull Google Firebase notifications.
+# TYPE fpp_firebase_success_count counter
+fpp_firebase_success_count 0
+# HELP fpp_registered_devices Number of registered devices.
+# TYPE fpp_registered_devices gauge
+fpp_registered_devices 2
+# HELP fpp_total_send_count Number of sent notifications.
+# TYPE fpp_total_send_count counter
+fpp_total_send_count 0
+# HELP process_cpu_seconds_total Total user and system CPU time spent in seconds.
+# TYPE process_cpu_seconds_total counter
+process_cpu_seconds_total 0.59
+# HELP process_max_fds Maximum number of open file descriptors.
+# TYPE process_max_fds gauge
+process_max_fds 524288
+# HELP process_open_fds Number of open file descriptors.
+# TYPE process_open_fds gauge
+process_open_fds 16
+# HELP process_resident_memory_bytes Resident memory size in bytes.
+# TYPE process_resident_memory_bytes gauge
+process_resident_memory_bytes 3.6306944e+07
+# HELP process_start_time_seconds Start time of the process since unix epoch in seconds.
+# TYPE process_start_time_seconds gauge
+process_start_time_seconds 1.68967205882e+09
+# HELP process_virtual_memory_bytes Virtual memory size in bytes.
+# TYPE process_virtual_memory_bytes gauge
+process_virtual_memory_bytes 3.549577216e+09
+# HELP process_virtual_memory_max_bytes Maximum amount of virtual memory available in bytes.
+# TYPE process_virtual_memory_max_bytes gauge
+process_virtual_memory_max_bytes 1.8446744073709552e+19
+# HELP promhttp_metric_handler_errors_total Total number of internal errors encountered by the promhttp metric handler.
+# TYPE promhttp_metric_handler_errors_total counter
+promhttp_metric_handler_errors_total{cause="encoding"} 0
+promhttp_metric_handler_errors_total{cause="gathering"} 0
+```
 
 ## Build and deploy
 

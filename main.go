@@ -17,6 +17,9 @@ import (
 	"github.com/sideshow/apns2/token"
 	badger "github.com/dgraph-io/badger/v4"
 	"github.com/go-co-op/gocron"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var apnClient *apns2.Client
@@ -26,6 +29,9 @@ var ctx context.Context
 var db *badger.DB
 var ticker *time.Ticker
 var instanceToken string
+var metrics *Metrics
+
+/** Structures definition **/
 
 type Response struct {
 	Message string `json:"message"`
@@ -45,6 +51,77 @@ type Registration struct {
 	Topic string `json:"topic"`
 }
 
+type Metrics struct {
+	RegisteredDevices prometheus.Gauge
+	TotalSendCount prometheus.Counter
+	APNSuccessCount prometheus.Counter
+	APNErrorCount prometheus.Counter
+	FirebaseSuccessCount prometheus.Counter
+	FirebaseErrorCount prometheus.Counter
+}
+
+/** Audit and metrics functions **/
+
+func countRegisteredDevices() float64{
+	var count = 0
+	db.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		opts.PrefetchValues = false
+		it := txn.NewIterator(opts)
+		defer it.Close()
+		for it.Rewind(); it.Valid(); it.Next() {
+			if !it.Item().IsDeletedOrExpired() {
+				count++
+			}
+		}
+		return nil
+	})
+
+	return float64(count)
+}
+
+func audit(record []string) {
+	now := time.Now().Format(time.RFC3339)
+	w := csv.NewWriter(os.Stdout)
+	if err := w.Write(append([]string{now}, record...)); err != nil {
+		fmt.Fprintln(os.Stderr, "Error writing record to csv:", err)
+	}
+	w.Flush()
+
+	// Update metrics
+	if record[0] == "send" {
+		metrics.TotalSendCount.Inc()
+		if record[1] == "apple" {
+			if record[2] == "success" {
+				metrics.APNSuccessCount.Inc()
+			} else {
+				metrics.APNErrorCount.Inc()
+			}
+		} else if record[1] == "firebase" {
+			if record[2] == "success" {
+				metrics.FirebaseSuccessCount.Inc()
+			} else {
+				metrics.FirebaseErrorCount.Inc()
+			}
+		}
+	} else if record[0] == "register" {
+		metrics.RegisteredDevices.Set(countRegisteredDevices())
+	}
+}
+
+func auditSend(result string, response string, notification *Notification) {
+	audit([]string{"send", notification.Type, result, response, notification.Topic, notification.CallId, notification.Uuid})
+}
+
+func auditRegister(result string, rtype string, response string, token string, topic string) {
+	audit([]string{"register", rtype, result, response, token, topic})
+}
+
+func auditDeregister(result string, rtype string, response string, token string, topic string) {
+	audit([]string{"deregister", rtype, result, response, token, topic})
+}
+
+/** Gin middleware **/
 
 func InstanceTokenAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -64,30 +141,12 @@ func InstanceTokenAuth() gin.HandlerFunc {
 	}
 }
 
+/** Gin routes **/
+
 func ping(c *gin.Context) {
 	c.JSON(http.StatusOK, Response{Message: "pong"})
 }
 
-func audit(record []string) {
-	now := time.Now().Format(time.RFC3339)
-	w := csv.NewWriter(os.Stdout)
-	if err := w.Write(append([]string{now}, record...)); err != nil {
-		fmt.Fprintln(os.Stderr, "Error writing record to csv:", err)
-	}
-	w.Flush()
-}
-
-func auditSend(result string, response string, notification *Notification) {
-	audit([]string{"send", notification.Type, result, response, notification.Topic, notification.CallId, notification.Uuid})
-}
-
-func auditRegister(result string, rtype string, response string, token string, topic string) {
-	audit([]string{"register", rtype, result, response, token, topic})
-}
-
-func auditDeregister(result string, rtype string, response string, token string, topic string) {
-	audit([]string{"deregister", rtype, result, response, token, topic})
-}
 
 func register(c *gin.Context) {
 	var registration Registration
@@ -284,6 +343,7 @@ func send(c *gin.Context) {
 	}
 }
 
+/** Initialization functions **/
 
 func initFirebase() {
 	var fberr error
@@ -377,13 +437,52 @@ func initDB() (* badger.DB){
 	return db
 }
 
-func initInstance() {
+func initInstance(reg prometheus.Registerer) *Metrics {
 	instanceToken = os.Getenv("INSTANCE_TOKEN")
 	if len(instanceToken) == 0 {
 		fmt.Fprintln(os.Stderr, "Error initializing instance token: empty environment variable")
 		os.Exit(6)
 	}
+
+	// Initialize metrics
+	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	m := &Metrics{
+		RegisteredDevices: prometheus.NewGauge(prometheus.GaugeOpts{
+			Name:      "fpp_registered_devices",
+			Help:      "Number of registered devices.",
+		}),
+		TotalSendCount: prometheus.NewCounter(prometheus.CounterOpts{
+			Name:      "fpp_total_send_count",
+			Help:      "Number of sent notifications.",
+		}),
+		APNSuccessCount: prometheus.NewCounter(prometheus.CounterOpts{
+			Name:      "fpp_apn_success_count",
+			Help:      "Number of successfull Apple APN notifications.",
+		}),
+		APNErrorCount: prometheus.NewCounter(prometheus.CounterOpts{
+			Name:      "fpp_apn_error_count",
+			Help:      "Number of errored Apple APN notifications.",
+		}),
+		FirebaseSuccessCount: prometheus.NewCounter(prometheus.CounterOpts{
+			Name:      "fpp_firebase_success_count",
+			Help:      "Number of successfull Google Firebase notifications.",
+		}),
+		FirebaseErrorCount: prometheus.NewCounter(prometheus.CounterOpts{
+			Name:      "fpp_firebase_error_count",
+			Help:      "Number of errored Google Firebase notifications.",
+		}),
+	}
+	reg.MustRegister(m.RegisteredDevices)
+	reg.MustRegister(m.TotalSendCount)
+	reg.MustRegister(m.APNSuccessCount)
+	reg.MustRegister(m.APNErrorCount)
+	reg.MustRegister(m.FirebaseSuccessCount)
+	reg.MustRegister(m.FirebaseErrorCount)
+
+	return m
 }
+
+/** Application handler **/
 
 func main() {
 	// Connect to Firebase for Android notifications
@@ -393,11 +492,17 @@ func main() {
 	// Initialize DB to store iOS device token
 	db = initDB()
 	defer db.Close()
-	// Initialize instance info
-	initInstance()
+	// Initialize instance API key and metrics
+	reg := prometheus.NewRegistry()
+	metrics = initInstance(reg)
+	promHandler := promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg})
+
+	// Update db metrics
+	metrics.RegisteredDevices.Set(countRegisteredDevices())
 
 	router := gin.Default()
 	router.GET("/ping", ping)
+	router.GET("/metrics", gin.WrapH(promHandler))
 	router.POST("/send", send)
 	router.POST("/register", InstanceTokenAuth(), register)
 	router.POST("/deregister", InstanceTokenAuth(), deregister)
