@@ -228,6 +228,10 @@ func send(c *gin.Context) {
 			return
 		}
 
+		// Extend topic expiration
+		// Ignore error here. Worst case: the topic expires after the TTL
+		saveTopicToken(notification.Topic, deviceToken, notification.Type)
+
 		auditSend("success", response, &notification)
 		c.JSON(http.StatusOK, Response{Message: response})
 		return
