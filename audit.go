@@ -33,7 +33,7 @@ func audit(record []string) {
 				metrics.FirebaseErrorCount.Inc()
 			}
 		}
-	} else if record[0] == "register" {
+	} else if record[0] == "register" || record[0] == "deregister" {
 		metrics.RegisteredDevices.Set(countRegisteredDevices())
 	}
 }
