@@ -1,5 +1,10 @@
 package main
 
+/** Constants **/
+
+const Apple byte = 1
+const Firebase byte = 2
+
 /** Structs definition **/
 
 type Response struct {
@@ -18,4 +23,5 @@ type Notification struct {
 type Registration struct {
 	Token string `json:"token"`
 	Topic string `json:"topic"`
+	Type  string `json:"type"`
 }

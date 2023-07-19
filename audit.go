@@ -34,7 +34,9 @@ func audit(record []string) {
 			}
 		}
 	} else if record[0] == "register" || record[0] == "deregister" {
-		metrics.RegisteredDevices.Set(countRegisteredDevices())
+		apnCount, fbCount := countRegisteredDevices()
+		metrics.RegisteredAPNDevices.Set(apnCount)
+		metrics.RegisteredFirebaseDevices.Set(fbCount)
 	}
 }
 

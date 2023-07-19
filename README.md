@@ -5,7 +5,7 @@ and [iOS NethCTI app](https://github.com/nethesis/nethcti-app-iphone).
 
 The proxy handles:
 
-- iOS devices registration and deregistration
+- devices registration and deregistration
 - background push notifications to [Google Firebase Cloud Messaging](https://firebase.google.com/docs/cloud-messaging) for Android phones
 - VoIP push notifications to [Apple APN](https://developer.apple.com/documentation/usernotifications) for iOS devices
 
@@ -28,8 +28,10 @@ GOOGLE_APPLICATION_CREDENTIALS="./credentials.json" APPLE_APPLICATION_CREDENTIAL
 The server exposes the following APIs:
 
 - `/ping`: GET, just test if the service is online
+
 - `/metrics`: GET, return metrics in Prometheus format
-- `/register`: POST, register a iOS device. Both the device token and the topic must be a string of 64 hex characters.
+
+- `/register`: POST, register a device. Both the device token and the topic must be a string of 64 hex characters.
   If device token and topic are valid, the server will save the token associated to the given topic.
   Token/topic association will expire after 356 days: applications must be opened at least once every 6 months
   to keep receiving notifications.
@@ -37,16 +39,20 @@ The server exposes the following APIs:
   Parameters:
   - `token`: Apple Device token
   - `topic`: Unique topic to identify the mobile device. The topic is the sha256sum of the token received by the client
-- `/deregister`: POST, deregister an iOS device. Both the device token and the topic must be a string of 64 hex characters.
+  - `type`: Registration type, can be `apple` for iOS devices and `firebase` for Android devices
+
+- `/deregister`: POST, deregister a device. Both the device token and the topic must be a string of 64 hex characters.
   If the tuple token/topic is valid, the tuple will be deleted from the database.
   This endpoint must be validated with an header `Instance-Token`, see `INSTANCE_TOKEN` env var.
   Parameters:
   - `token`: Apple Device token
   - `topic`: Unique topic to identify the mobile device. The topic is the sha256sum of the token received by the client
+  - `type`: Registration type, can be `apple` for iOS devices and `firebase` for Android devices
+
 - `/send`: POST, send a wake-up notification to a device
   Parameters:
-  - `type`: Notification type, can be `apple` or `firebase`. If `type` is `apple`, the
-    iOS device should already have been registered: the server will wake up the device token
+  - `type`: Notification type, can be `apple` or `firebase`.
+    The device must be already registered: the server will wake up the device token
     corresponding to the given `topic`
   - `topic`: Unique topic to identify the mobile device. The topic is the sha256sum of the token received by the client
     after the login
@@ -76,7 +82,7 @@ curl -H "Accept: application/json" http://localhost:8080/send \
 Register an iOS device, example:
 ```
 curl -H "Accept: application/json" -H "Instance-Token: 8dc657c146dc410790adb71d0be62c591b9bfda9c1c889972c0d2a095b71f733" "http://localhost:8080/register \
-  --data '{"token": "A6F31E46858BF045475A529F709D781B8D48507DFFDCEBBB1DCEF907FD58AC05", "topic": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}'
+  --data '{"token": "A6F31E46858BF045475A529F709D781B8D48507DFFDCEBBB1DCEF907FD58AC05", "topic": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "type": "apple"}'
 ```
 
 ## Logging
@@ -118,13 +124,7 @@ On error, the `response` field contains the specific error message.
 ## Metrics
 
 The `/metrics` endpoint returns [basic proces information](https://pkg.go.dev/github.com/prometheus/client_golang/prometheus/collectors#NewProcessCollector)
-plus the following metrics:
-- Number of registered devices
-- Number of sent notifications
-- Number of successfull Apple APN notifications
-- Number of errored Apple APN notifications
-- Number of successfull Google Firebase notifications
-- Number of errored Google Firebase notifications
+plus some specific FPP metrics. FPP metrics have the `fpp_`prefix.
 
 Example:
 ```
@@ -140,30 +140,33 @@ fpp_firebase_error_count 0
 # HELP fpp_firebase_success_count Number of successfull Google Firebase notifications.
 # TYPE fpp_firebase_success_count counter
 fpp_firebase_success_count 0
-# HELP fpp_registered_devices Number of registered devices.
-# TYPE fpp_registered_devices gauge
-fpp_registered_devices 2
+# HELP fpp_registered_apn_devices Number of registered Apple APN devices.
+# TYPE fpp_registered_apn_devices gauge
+fpp_registered_apn_devices 0
+# HELP fpp_registered_firebase_devices Number of registered Google Firebase devices.
+# TYPE fpp_registered_firebase_devices gauge
+fpp_registered_firebase_devices 0
 # HELP fpp_total_send_count Number of sent notifications.
 # TYPE fpp_total_send_count counter
 fpp_total_send_count 0
 # HELP process_cpu_seconds_total Total user and system CPU time spent in seconds.
 # TYPE process_cpu_seconds_total counter
-process_cpu_seconds_total 0.59
+process_cpu_seconds_total 0.26
 # HELP process_max_fds Maximum number of open file descriptors.
 # TYPE process_max_fds gauge
 process_max_fds 524288
 # HELP process_open_fds Number of open file descriptors.
 # TYPE process_open_fds gauge
-process_open_fds 16
+process_open_fds 20
 # HELP process_resident_memory_bytes Resident memory size in bytes.
 # TYPE process_resident_memory_bytes gauge
-process_resident_memory_bytes 3.6306944e+07
+process_resident_memory_bytes 3.0277632e+07
 # HELP process_start_time_seconds Start time of the process since unix epoch in seconds.
 # TYPE process_start_time_seconds gauge
-process_start_time_seconds 1.68967205882e+09
+process_start_time_seconds 1.68976139934e+09
 # HELP process_virtual_memory_bytes Virtual memory size in bytes.
 # TYPE process_virtual_memory_bytes gauge
-process_virtual_memory_bytes 3.549577216e+09
+process_virtual_memory_bytes 3.70067456e+09
 # HELP process_virtual_memory_max_bytes Maximum amount of virtual memory available in bytes.
 # TYPE process_virtual_memory_max_bytes gauge
 process_virtual_memory_max_bytes 1.8446744073709552e+19

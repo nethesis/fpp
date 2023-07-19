@@ -62,6 +62,9 @@ func validateRegistration(registration Registration) error {
 	if !r.MatchString(registration.Topic) || len(registration.Topic) != 64 {
 		return errors.New("Invalid topic")
 	}
+	if registration.Type != "apple" && registration.Type != "firebase" {
+		return errors.New("Invalid type")
+	}
 	return nil
 }
 
@@ -81,21 +84,21 @@ func register(c *gin.Context) {
 
 	// Check registration format
 	if err := validateRegistration(registration); err != nil {
-		auditRegister("error", "apple", err.Error(), registration.Token, registration.Topic)
+		auditRegister("error", registration.Type, err.Error(), registration.Token, registration.Topic)
 		c.JSON(http.StatusInternalServerError, Response{Message: err.Error()})
 		return
 	}
 
 	// If the token is valid store <topic>:<device> key/value
 	// Set a TTL of 6 months, the TTL is updated on each use
-	dberr := saveTopicToken(registration.Topic, registration.Token)
+	dberr := saveTopicToken(registration.Topic, registration.Token, registration.Type)
 
 	if dberr != nil {
-		auditRegister("error", "apple", dberr.Error(), registration.Token, registration.Topic)
+		auditRegister("error", registration.Type, dberr.Error(), registration.Token, registration.Topic)
 		c.JSON(http.StatusInternalServerError, Response{Message: dberr.Error()})
 		return
 	}
-	auditRegister("success", "apple", "ok", registration.Token, registration.Topic)
+	auditRegister("success", registration.Type, "ok", registration.Token, registration.Topic)
 	c.JSON(http.StatusOK, Response{Message: "success"})
 }
 
@@ -109,7 +112,7 @@ func deregister(c *gin.Context) {
 
 	// Check registration format
 	if err := validateRegistration(registration); err != nil {
-		auditRegister("error", "apple", err.Error(), registration.Token, registration.Topic)
+		auditRegister("error", registration.Type, err.Error(), registration.Token, registration.Topic)
 		c.JSON(http.StatusInternalServerError, Response{Message: err.Error()})
 		return
 	}
@@ -117,7 +120,7 @@ func deregister(c *gin.Context) {
 	// Check if tuple key/topic matches
 	deviceToken, err := getTokenFromTopic(registration.Topic)
 	if err != nil || deviceToken != registration.Token {
-		auditDeregister("error", "apple", "invalid tuple", registration.Token, registration.Topic)
+		auditDeregister("error", registration.Type, "invalid tuple", registration.Token, registration.Topic)
 		c.JSON(http.StatusInternalServerError, Response{Message: "Invalid token/topic tuple"})
 		return
 	}
@@ -125,12 +128,12 @@ func deregister(c *gin.Context) {
 	// Delete token/topic tuple
 	dberr := deleteTopic(registration.Topic)
 	if dberr != nil {
-		auditDeregister("error", "apple", dberr.Error(), registration.Token, registration.Topic)
+		auditDeregister("error", registration.Type, dberr.Error(), registration.Token, registration.Topic)
 		c.JSON(http.StatusInternalServerError, Response{Message: dberr.Error()})
 		return
 	}
 
-	auditDeregister("success", "apple", "ok", registration.Token, registration.Topic)
+	auditDeregister("success", registration.Type, "ok", registration.Token, registration.Topic)
 	c.JSON(http.StatusOK, Response{Message: "success"})
 }
 
@@ -143,13 +146,13 @@ func send(c *gin.Context) {
 		return
 	}
 
-	if notification.Type == "apple" {
-		deviceToken, err := getTokenFromTopic(notification.Topic)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, Response{Message: err.Error()})
-			return
-		}
+	deviceToken, err := getTokenFromTopic(notification.Topic)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, Response{Message: err.Error()})
+		return
+	}
 
+	if notification.Type == "apple" {
 		apnNotif := &apns2.Notification{}
 		apnNotif.DeviceToken = deviceToken
 		apnNotif.Topic = apnTopic
@@ -183,7 +186,7 @@ func send(c *gin.Context) {
 
 		// Extend topic expiration
 		// Ignore error here. Worst case: the topic expires after the TTL
-		saveTopicToken(notification.Topic, deviceToken)
+		saveTopicToken(notification.Topic, deviceToken, notification.Type)
 
 		auditSend("success", res.ApnsID, &notification)
 		c.JSON(http.StatusOK, Response{Message: res.ApnsID})
@@ -194,7 +197,7 @@ func send(c *gin.Context) {
 				Priority: "high",
 			},
 			Data:  map[string]string{"call-id": notification.CallId, "uuid": notification.Uuid},
-			Topic: notification.Topic,
+			Token: deviceToken,
 		}
 		response, err := fbClient.Send(ctx, message)
 		if err != nil {
@@ -220,7 +223,6 @@ func initInstance() {
 		fmt.Fprintln(os.Stderr, "Error initializing instance token: empty environment variable")
 		os.Exit(6)
 	}
-
 }
 
 func sigHandler(signal os.Signal) {
@@ -262,11 +264,14 @@ func main() {
 	initInstance()
 	// Initialize signals
 	initSignals()
-	// Initialize metrics and update them from db
+	// Initialize metrics
 	var reg *prometheus.Registry
 	metrics, reg = initMetrics()
-	metrics.RegisteredDevices.Set(countRegisteredDevices())
 	promHandler := promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg})
+	// Update db metrics
+	apnCount, fbCount := countRegisteredDevices()
+	metrics.RegisteredAPNDevices.Set(apnCount)
+	metrics.RegisteredFirebaseDevices.Set(fbCount)
 
 	router := gin.Default()
 	router.GET("/ping", ping)
