@@ -8,13 +8,13 @@ import (
 /** Metrics functions and structs **/
 
 type Metrics struct {
-	RegisteredAPNDevices    prometheus.Gauge
-	RegisteredFirebaseDevices    prometheus.Gauge
-	TotalSendCount       prometheus.Counter
-	APNSuccessCount      prometheus.Counter
-	APNErrorCount        prometheus.Counter
-	FirebaseSuccessCount prometheus.Counter
-	FirebaseErrorCount   prometheus.Counter
+	RegisteredAPNDevices      prometheus.Gauge
+	RegisteredFirebaseDevices prometheus.Gauge
+	TotalSendCount            prometheus.Counter
+	APNSuccessCount           prometheus.Counter
+	APNErrorCount             prometheus.Counter
+	FirebaseSuccessCount      prometheus.Counter
+	FirebaseErrorCount        prometheus.Counter
 }
 
 func updateDeviceMetrics() {
