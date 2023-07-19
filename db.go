@@ -56,9 +56,9 @@ func getTokenFromTopic(topic string) (string, error) {
 }
 
 func saveTopicToken(topic string, token string, ttype string) error {
-	// Set a 6-months  TTL
+	// Firebase doc suggests 2 months TTL, let's be conservative and set it to 3 months
 	return db.Update(func(txn *badger.Txn) error {
-		record := badger.NewEntry([]byte(topic), []byte(token)).WithTTL(24 * 180 * time.Hour)
+		record := badger.NewEntry([]byte(topic), []byte(token)).WithTTL(24 * 90 * time.Hour)
 		if ttype == "apple" {
 			record.WithMeta(Apple)
 		} else {

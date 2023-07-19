@@ -108,7 +108,6 @@ func register(c *gin.Context) {
 	}
 
 	// If the token is valid store <topic>:<device> key/value
-	// Set a TTL of 6 months, the TTL is updated on each use
 	dberr := saveTopicToken(registration.Topic, registration.Token, registration.Type)
 
 	if dberr != nil {
