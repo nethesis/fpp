@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	badger "github.com/dgraph-io/badger/v4"
 	"github.com/go-co-op/gocron"
@@ -26,6 +27,43 @@ func countRegisteredDevices() float64 {
 	})
 
 	return float64(count)
+}
+
+func getTokenFromTopic(topic string) (string, error) {
+	var deviceToken []byte
+	err := db.View(func(txn *badger.Txn) error {
+		item, err := txn.Get([]byte(topic))
+		if err != nil {
+			return errors.New("No topic found")
+		}
+		if item.IsDeletedOrExpired() {
+			return errors.New("Topic deleted or expired")
+		}
+		ierr := item.Value(func(val []byte) error {
+			deviceToken = make([]byte, len(val))
+			copy(deviceToken, val)
+			return nil
+		})
+		return ierr
+	})
+
+	return string(deviceToken), err
+}
+
+func saveTopicToken(topic string, token string) error {
+	// Set a 6-months  TTL
+	return db.Update(func(txn *badger.Txn) error {
+		record := badger.NewEntry([]byte(topic), []byte(token)).WithTTL(24 * 180 * time.Hour)
+		err := txn.SetEntry(record)
+		return err
+	})
+}
+
+func deleteTopic(topic string) error {
+	return db.Update(func(txn *badger.Txn) error {
+		err := txn.Delete([]byte(topic))
+		return err
+	})
 }
 
 func initDB() *badger.DB {

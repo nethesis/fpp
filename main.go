@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -79,12 +78,8 @@ func register(c *gin.Context) {
 	}
 
 	// If the token is valid store <topic>:<device> key/value
-	// Set a TTL of one year, the TTL is updated on each use
-	dberr := db.Update(func(txn *badger.Txn) error {
-		record := badger.NewEntry([]byte(registration.Topic), []byte(registration.Token)).WithTTL(24 * 365 * time.Hour)
-		err := txn.SetEntry(record)
-		return err
-	})
+	// Set a TTL of 6 months, the TTL is updated on each use
+	dberr := saveTopicToken(registration.Topic, registration.Token)
 
 	if dberr != nil {
 		auditRegister("error", "apple", dberr.Error(), registration.Token, registration.Topic)
@@ -97,7 +92,6 @@ func register(c *gin.Context) {
 
 func deregister(c *gin.Context) {
 	var registration Registration
-	var deviceToken []byte
 
 	if err := c.BindJSON(&registration); err != nil {
 		c.JSON(http.StatusInternalServerError, Response{Message: "Invalid parameters"})
@@ -118,38 +112,21 @@ func deregister(c *gin.Context) {
 	}
 
 	// Check if tuple key/topic matches
-	err := db.View(func(txn *badger.Txn) error {
-		item, err := txn.Get([]byte(registration.Topic))
-
-		if err != nil {
-			auditDeregister("error", "apple", "not topic found", registration.Token, registration.Topic)
-			c.JSON(http.StatusInternalServerError, Response{Message: "No topic found"})
-			return err
-		}
-		ierr := item.Value(func(val []byte) error {
-			deviceToken = make([]byte, len(val))
-			copy(deviceToken, val)
-			return nil
-		})
-		return ierr
-	})
-	if err != nil || string(deviceToken[:]) != registration.Token {
+	deviceToken, err := getTokenFromTopic(registration.Topic)
+	if err != nil || deviceToken != registration.Token {
 		auditDeregister("error", "apple", "invalid tuple", registration.Token, registration.Topic)
 		c.JSON(http.StatusInternalServerError, Response{Message: "Invalid token/topic tuple"})
 		return
 	}
 
 	// Delete token/topic tuple
-	dberr := db.Update(func(txn *badger.Txn) error {
-		err := txn.Delete([]byte(registration.Topic))
-		return err
-	})
-
+	dberr := deleteTopic(registration.Topic)
 	if dberr != nil {
 		auditDeregister("error", "apple", dberr.Error(), registration.Token, registration.Topic)
 		c.JSON(http.StatusInternalServerError, Response{Message: dberr.Error()})
 		return
 	}
+
 	auditDeregister("success", "apple", "ok", registration.Token, registration.Topic)
 	c.JSON(http.StatusOK, Response{Message: "success"})
 }
@@ -164,31 +141,14 @@ func send(c *gin.Context) {
 	}
 
 	if notification.Type == "apple" {
-		var deviceToken []byte
-		err := db.View(func(txn *badger.Txn) error {
-			item, err := txn.Get([]byte(notification.Topic))
-
-			if err != nil {
-				return errors.New("No topic found")
-			}
-			if item.IsDeletedOrExpired() {
-				return errors.New("Topic deleted or expired")
-			}
-
-			ierr := item.Value(func(val []byte) error {
-				deviceToken = make([]byte, len(val))
-				copy(deviceToken, val)
-				return nil
-			})
-			return ierr
-		})
-
+		deviceToken, err := getTokenFromTopic(notification.Topic)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, Response{Message: err.Error()})
 			return
 		}
+
 		apnNotif := &apns2.Notification{}
-		apnNotif.DeviceToken = string(deviceToken)
+		apnNotif.DeviceToken = deviceToken
 		apnNotif.Topic = apnTopic
 		apnNotif.PushType = apns2.PushTypeVOIP
 		apnNotif.Payload = []byte(fmt.Sprintf(`{
@@ -219,12 +179,8 @@ func send(c *gin.Context) {
 		}
 
 		// Extend topic expiration
-		// Ignore error here. Worst case: the topic expires after one year
-		db.Update(func(txn *badger.Txn) error {
-			record := badger.NewEntry([]byte(notification.Topic), []byte(deviceToken)).WithTTL(24 * 365 * time.Hour)
-			err := txn.SetEntry(record)
-			return err
-		})
+		// Ignore error here. Worst case: the topic expires after the TTL
+		saveTopicToken(notification.Topic, deviceToken)
 
 		auditSend("success", res.ApnsID, &notification)
 		c.JSON(http.StatusOK, Response{Message: res.ApnsID})
