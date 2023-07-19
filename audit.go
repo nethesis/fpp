@@ -17,27 +17,7 @@ func audit(record []string) {
 	}
 	w.Flush()
 
-	// Update metrics
-	if record[0] == "send" {
-		metrics.TotalSendCount.Inc()
-		if record[1] == "apple" {
-			if record[2] == "success" {
-				metrics.APNSuccessCount.Inc()
-			} else {
-				metrics.APNErrorCount.Inc()
-			}
-		} else if record[1] == "firebase" {
-			if record[2] == "success" {
-				metrics.FirebaseSuccessCount.Inc()
-			} else {
-				metrics.FirebaseErrorCount.Inc()
-			}
-		}
-	} else if record[0] == "register" || record[0] == "deregister" {
-		apnCount, fbCount := countRegisteredDevices()
-		metrics.RegisteredAPNDevices.Set(apnCount)
-		metrics.RegisteredFirebaseDevices.Set(fbCount)
-	}
+	updateMetrics(record)
 }
 
 func auditSend(result string, response string, notification *Notification) {

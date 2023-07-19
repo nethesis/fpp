@@ -269,9 +269,7 @@ func main() {
 	metrics, reg = initMetrics()
 	promHandler := promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg})
 	// Update db metrics
-	apnCount, fbCount := countRegisteredDevices()
-	metrics.RegisteredAPNDevices.Set(apnCount)
-	metrics.RegisteredFirebaseDevices.Set(fbCount)
+	updateDeviceMetrics()
 
 	router := gin.Default()
 	router.GET("/ping", ping)
