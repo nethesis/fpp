@@ -17,6 +17,34 @@ type Metrics struct {
 	FirebaseErrorCount   prometheus.Counter
 }
 
+func updateDeviceMetrics() {
+	apnCount, fbCount := countRegisteredDevices()
+	metrics.RegisteredAPNDevices.Set(apnCount)
+	metrics.RegisteredFirebaseDevices.Set(fbCount)
+}
+
+func updateMetrics(record []string) {
+	if record[0] == "send" {
+		metrics.TotalSendCount.Inc()
+		if record[1] == "apple" {
+			if record[2] == "success" {
+				metrics.APNSuccessCount.Inc()
+			} else {
+				metrics.APNErrorCount.Inc()
+			}
+		} else if record[1] == "firebase" {
+			if record[2] == "success" {
+				metrics.FirebaseSuccessCount.Inc()
+			} else {
+				metrics.FirebaseErrorCount.Inc()
+			}
+		}
+	} else if record[0] == "register" || record[0] == "deregister" {
+		updateDeviceMetrics()
+	}
+
+}
+
 func initMetrics() (*Metrics, *prometheus.Registry) {
 	reg := prometheus.NewRegistry()
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
