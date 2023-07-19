@@ -196,6 +196,11 @@ func send(c *gin.Context) {
 		}
 
 		if res.StatusCode != 200 {
+			// Cleanup stale token
+			// 410 response: https://developer.apple.com/library/archive/documentation/NetworkingInternet/Conceptual/RemoteNotificationsPG/CommunicatingwithAPNs.html#//apple_ref/doc/uid/TP40008194-CH11-SW15
+			if res.StatusCode == 410 {
+				deleteTopic(notification.Topic)
+			}
 			c.JSON(http.StatusInternalServerError, Response{Message: res.Reason})
 			auditSend("error", res.Reason, &notification)
 			return
