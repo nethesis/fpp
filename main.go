@@ -1,13 +1,13 @@
 package main
 
 import (
-	"os"
-	"fmt"
-	"time"
-	"errors"
-	"regexp"
 	"context"
+	"errors"
+	"fmt"
 	"net/http"
+	"os"
+	"regexp"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -18,8 +18,8 @@ import (
 	badger "github.com/dgraph-io/badger/v4"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/client_golang/prometheus/collectors"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var apnClient *apns2.Client
@@ -57,7 +57,6 @@ func ping(c *gin.Context) {
 	c.JSON(http.StatusOK, Response{Message: "pong"})
 }
 
-
 func register(c *gin.Context) {
 	var registration Registration
 
@@ -68,17 +67,16 @@ func register(c *gin.Context) {
 
 	// Check token and topic format
 	r, _ := regexp.Compile("^[0-9a-fA-F]+$")
-	if ! r.MatchString(registration.Token) || len(registration.Token) != 64 {
+	if !r.MatchString(registration.Token) || len(registration.Token) != 64 {
 		auditRegister("error", "apple", "invalid token", registration.Token, registration.Topic)
 		c.JSON(http.StatusInternalServerError, Response{Message: "Invalid token"})
 		return
 	}
-	if ! r.MatchString(registration.Topic) || len(registration.Topic) != 64 {
+	if !r.MatchString(registration.Topic) || len(registration.Topic) != 64 {
 		auditRegister("error", "apple", "invalid topic", registration.Token, registration.Topic)
 		c.JSON(http.StatusInternalServerError, Response{Message: "Invalid topic"})
 		return
 	}
-
 
 	// If the token is valid store <topic>:<device> key/value
 	// Set a TTL of one year, the TTL is updated on each use
@@ -108,12 +106,12 @@ func deregister(c *gin.Context) {
 
 	// Check token and topic format
 	r, _ := regexp.Compile("^[0-9a-fA-F]+$")
-	if ! r.MatchString(registration.Token) || len(registration.Token) != 64 {
+	if !r.MatchString(registration.Token) || len(registration.Token) != 64 {
 		auditDeregister("error", "apple", "invalid token", registration.Token, registration.Topic)
 		c.JSON(http.StatusInternalServerError, Response{Message: "Invalid token"})
 		return
 	}
-	if ! r.MatchString(registration.Topic) || len(registration.Topic) != 64 {
+	if !r.MatchString(registration.Topic) || len(registration.Topic) != 64 {
 		auditDeregister("error", "apple", "invalid topic", registration.Token, registration.Topic)
 		c.JSON(http.StatusInternalServerError, Response{Message: "Invalid topic"})
 		return
@@ -156,7 +154,6 @@ func deregister(c *gin.Context) {
 	c.JSON(http.StatusOK, Response{Message: "success"})
 }
 
-
 func send(c *gin.Context) {
 	var notification Notification
 	var message *messaging.Message
@@ -185,7 +182,7 @@ func send(c *gin.Context) {
 			})
 			return ierr
 		})
-		
+
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, Response{Message: err.Error()})
 			return
@@ -234,10 +231,10 @@ func send(c *gin.Context) {
 		return
 	} else if notification.Type == "firebase" {
 		message = &messaging.Message{
-			Android: &messaging.AndroidConfig {
+			Android: &messaging.AndroidConfig{
 				Priority: "high",
 			},
-			Data: map[string]string{ "call-id": notification.CallId, "uuid": notification.Uuid },
+			Data:  map[string]string{"call-id": notification.CallId, "uuid": notification.Uuid},
 			Topic: notification.Topic,
 		}
 		response, err := fbClient.Send(ctx, message)
@@ -269,28 +266,28 @@ func initInstance(reg prometheus.Registerer) *Metrics {
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	m := &Metrics{
 		RegisteredDevices: prometheus.NewGauge(prometheus.GaugeOpts{
-			Name:      "fpp_registered_devices",
-			Help:      "Number of registered devices.",
+			Name: "fpp_registered_devices",
+			Help: "Number of registered devices.",
 		}),
 		TotalSendCount: prometheus.NewCounter(prometheus.CounterOpts{
-			Name:      "fpp_total_send_count",
-			Help:      "Number of sent notifications.",
+			Name: "fpp_total_send_count",
+			Help: "Number of sent notifications.",
 		}),
 		APNSuccessCount: prometheus.NewCounter(prometheus.CounterOpts{
-			Name:      "fpp_apn_success_count",
-			Help:      "Number of successfull Apple APN notifications.",
+			Name: "fpp_apn_success_count",
+			Help: "Number of successfull Apple APN notifications.",
 		}),
 		APNErrorCount: prometheus.NewCounter(prometheus.CounterOpts{
-			Name:      "fpp_apn_error_count",
-			Help:      "Number of errored Apple APN notifications.",
+			Name: "fpp_apn_error_count",
+			Help: "Number of errored Apple APN notifications.",
 		}),
 		FirebaseSuccessCount: prometheus.NewCounter(prometheus.CounterOpts{
-			Name:      "fpp_firebase_success_count",
-			Help:      "Number of successfull Google Firebase notifications.",
+			Name: "fpp_firebase_success_count",
+			Help: "Number of successfull Google Firebase notifications.",
 		}),
 		FirebaseErrorCount: prometheus.NewCounter(prometheus.CounterOpts{
-			Name:      "fpp_firebase_error_count",
-			Help:      "Number of errored Google Firebase notifications.",
+			Name: "fpp_firebase_error_count",
+			Help: "Number of errored Google Firebase notifications.",
 		}),
 	}
 	reg.MustRegister(m.RegisteredDevices)

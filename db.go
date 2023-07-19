@@ -1,16 +1,16 @@
 package main
 
 import (
-	"os"
 	"fmt"
-	"time"
-	"github.com/go-co-op/gocron"
 	badger "github.com/dgraph-io/badger/v4"
+	"github.com/go-co-op/gocron"
+	"os"
+	"time"
 )
 
 /** Database functions **/
 
-func countRegisteredDevices() float64{
+func countRegisteredDevices() float64 {
 	var count = 0
 	db.View(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
@@ -28,7 +28,7 @@ func countRegisteredDevices() float64{
 	return float64(count)
 }
 
-func initDB() (* badger.DB){
+func initDB() *badger.DB {
 	dbPath := os.Getenv("DB_PATH")
 	if len(dbPath) == 0 {
 		fmt.Fprintln(os.Stderr, "Error initializing DB: invalid db path")
@@ -51,5 +51,3 @@ func initDB() (* badger.DB){
 	})
 	return db
 }
-
-

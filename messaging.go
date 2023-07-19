@@ -1,9 +1,9 @@
 package main
 
 import (
-	"os"
-	"fmt"
 	"context"
+	"fmt"
+	"os"
 
 	firebase "firebase.google.com/go"
 
@@ -21,7 +21,7 @@ func initFirebase() {
 		fmt.Fprintln(os.Stderr, "Error initializing Firebase app: ", err.Error())
 		os.Exit(1)
 	}
-        ctx = context.Background()
+	ctx = context.Background()
 	fbClient, fberr = app.Messaging(ctx)
 
 	if fberr != nil {
@@ -67,7 +67,7 @@ func initAPN() {
 
 	token := &token.Token{
 		AuthKey: authKey,
- 		KeyID:   keyId,
+		KeyID:   keyId,
 		TeamID:  teamId,
 	}
 

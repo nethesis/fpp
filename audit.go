@@ -1,12 +1,11 @@
 package main
 
 import (
-	"os"
-	"fmt"
-	"time"
 	"encoding/csv"
+	"fmt"
+	"os"
+	"time"
 )
-
 
 /** Audit functions **/
 
@@ -50,5 +49,3 @@ func auditRegister(result string, rtype string, response string, token string, t
 func auditDeregister(result string, rtype string, response string, token string, topic string) {
 	audit([]string{"deregister", rtype, result, response, token, topic})
 }
-
-

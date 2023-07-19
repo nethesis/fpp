@@ -4,7 +4,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-
 /** Structures definition **/
 
 type Response struct {
@@ -12,11 +11,11 @@ type Response struct {
 }
 
 type Notification struct {
-	CallId string `json:"call-id"`
-	Uuid string `json:"uuid"`
-	Topic string `json:"topic"`
-	Type string `json:"type"`
-	FromUri string `json:"from-uri"`
+	CallId      string `json:"call-id"`
+	Uuid        string `json:"uuid"`
+	Topic       string `json:"topic"`
+	Type        string `json:"type"`
+	FromUri     string `json:"from-uri"`
 	DisplayName string `json:"display-name"`
 }
 
@@ -26,12 +25,10 @@ type Registration struct {
 }
 
 type Metrics struct {
-	RegisteredDevices prometheus.Gauge
-	TotalSendCount prometheus.Counter
-	APNSuccessCount prometheus.Counter
-	APNErrorCount prometheus.Counter
+	RegisteredDevices    prometheus.Gauge
+	TotalSendCount       prometheus.Counter
+	APNSuccessCount      prometheus.Counter
+	APNErrorCount        prometheus.Counter
 	FirebaseSuccessCount prometheus.Counter
-	FirebaseErrorCount prometheus.Counter
+	FirebaseErrorCount   prometheus.Counter
 }
-
-
