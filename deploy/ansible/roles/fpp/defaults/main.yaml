@@ -5,12 +5,13 @@ fpp_version: 0.0.4
 fpp_auth_service_url: https://my.nethesis.it/auth
 fpp_metrics_path: 51ac1758-257d-11ee-8b68-040e3cc0d4d4
 
-brand_name: nethesis
-brand_http_port: 8081
-brand_google_credentials_file: credentials.json
-brand_apple_credentials_file: credentials.p8
-brand_apple_team_id: 4tf7of1hqb
-brand_apple_key_id: cit75cjk43
-brand_apple_topic: com.example.MyApp
-brand_apple_environment: production
-brand_instance_token: 1cde32b5-fdc0-464d-86ee-6a91dab8fe27
+brands:
+  nethesis:
+    http_port: 8081
+    google_credentials_file: credentials.json
+    apple_credentials_file: credentials.p8
+    apple_team_id: 4tf7of1hqb
+    apple_key_id: cit75cjk43
+    apple_topic: com.example.MyApp
+    apple_environment: production
+    instance_token: 1cde32b5-fdc0-464d-86ee-6a91dab8fe27
