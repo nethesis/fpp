@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
 	"regexp"
+	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -18,7 +20,6 @@ import (
 	badger "github.com/dgraph-io/badger/v4"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -213,54 +214,43 @@ func send(c *gin.Context) {
 
 /** Initialization functions **/
 
-func initInstance(reg prometheus.Registerer) *Metrics {
+func initInstance() {
 	instanceToken = os.Getenv("INSTANCE_TOKEN")
 	if len(instanceToken) == 0 {
 		fmt.Fprintln(os.Stderr, "Error initializing instance token: empty environment variable")
 		os.Exit(6)
 	}
 
-	// Initialize metrics
-	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
-	m := &Metrics{
-		RegisteredDevices: prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "fpp_registered_devices",
-			Help: "Number of registered devices.",
-		}),
-		TotalSendCount: prometheus.NewCounter(prometheus.CounterOpts{
-			Name: "fpp_total_send_count",
-			Help: "Number of sent notifications.",
-		}),
-		APNSuccessCount: prometheus.NewCounter(prometheus.CounterOpts{
-			Name: "fpp_apn_success_count",
-			Help: "Number of successfull Apple APN notifications.",
-		}),
-		APNErrorCount: prometheus.NewCounter(prometheus.CounterOpts{
-			Name: "fpp_apn_error_count",
-			Help: "Number of errored Apple APN notifications.",
-		}),
-		FirebaseSuccessCount: prometheus.NewCounter(prometheus.CounterOpts{
-			Name: "fpp_firebase_success_count",
-			Help: "Number of successfull Google Firebase notifications.",
-		}),
-		FirebaseErrorCount: prometheus.NewCounter(prometheus.CounterOpts{
-			Name: "fpp_firebase_error_count",
-			Help: "Number of errored Google Firebase notifications.",
-		}),
-	}
-	reg.MustRegister(m.RegisteredDevices)
-	reg.MustRegister(m.TotalSendCount)
-	reg.MustRegister(m.APNSuccessCount)
-	reg.MustRegister(m.APNErrorCount)
-	reg.MustRegister(m.FirebaseSuccessCount)
-	reg.MustRegister(m.FirebaseErrorCount)
+}
 
-	return m
+func sigHandler(signal os.Signal) {
+	if signal == syscall.SIGTERM || signal == syscall.SIGINT || signal == syscall.SIGKILL || signal == os.Interrupt {
+		err := db.Close()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Error closing the db: ", err.Error())
+			os.Exit(7)
+		}
+		os.Exit(0)
+	}
+}
+
+func initSignals() {
+	sigChannel := make(chan os.Signal, 1)
+	signal.Notify(sigChannel)
+
+	go func() {
+		for {
+			s := <-sigChannel
+			sigHandler(s)
+		}
+	}()
 }
 
 /** Application handler **/
 
 func main() {
+	// Initialize signal handling
+	initSignals()
 	// Connect to Firebase for Android notifications
 	initFirebase()
 	// Connect to Apple APN for iOS notifications
@@ -268,13 +258,15 @@ func main() {
 	// Initialize DB to store iOS device token
 	db = initDB()
 	defer db.Close()
-	// Initialize instance API key and metrics
-	reg := prometheus.NewRegistry()
-	metrics = initInstance(reg)
-	promHandler := promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg})
-
-	// Update db metrics
+	// Initialize instance API key
+	initInstance()
+	// Initialize signals
+	initSignals()
+	// Initialize metrics and update them from db
+	var reg *prometheus.Registry
+	metrics, reg = initMetrics()
 	metrics.RegisteredDevices.Set(countRegisteredDevices())
+	promHandler := promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg})
 
 	router := gin.Default()
 	router.GET("/ping", ping)

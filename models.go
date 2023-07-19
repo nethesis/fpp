@@ -1,10 +1,6 @@
 package main
 
-import (
-	"github.com/prometheus/client_golang/prometheus"
-)
-
-/** Structures definition **/
+/** Structs definition **/
 
 type Response struct {
 	Message string `json:"message"`
@@ -22,13 +18,4 @@ type Notification struct {
 type Registration struct {
 	Token string `json:"token"`
 	Topic string `json:"topic"`
-}
-
-type Metrics struct {
-	RegisteredDevices    prometheus.Gauge
-	TotalSendCount       prometheus.Counter
-	APNSuccessCount      prometheus.Counter
-	APNErrorCount        prometheus.Counter
-	FirebaseSuccessCount prometheus.Counter
-	FirebaseErrorCount   prometheus.Counter
 }
