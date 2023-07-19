@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"syscall"
 	"time"
+	"unicode"
 
 	"github.com/gin-gonic/gin"
 
@@ -54,17 +55,34 @@ func InstanceTokenAuth() gin.HandlerFunc {
 
 /** Utils **/
 
+func isAscii(s string) bool {
+	for i := 0; i < len(s); i++ {
+		if s[i] > unicode.MaxASCII {
+			return false
+		}
+	}
+	return true
+}
+
 func validateRegistration(registration Registration) error {
-	r, _ := regexp.Compile("^[0-9a-fA-F]+$")
-	if !r.MatchString(registration.Token) || len(registration.Token) != 64 {
-		return errors.New("Invalid token")
-	}
-	if !r.MatchString(registration.Topic) || len(registration.Topic) != 64 {
-		return errors.New("Invalid topic")
-	}
+	topicReg, _ := regexp.Compile("^[0-9a-fA-F]+$")
+	spaceReg, _ := regexp.Compile("\\s+")
+
 	if registration.Type != "apple" && registration.Type != "firebase" {
 		return errors.New("Invalid type")
 	}
+
+	// Topic is a SHA256 hash
+	if !topicReg.MatchString(registration.Topic) || len(registration.Topic) != 64 {
+		return errors.New("Invalid topic")
+	}
+
+	// Token format is not known and can change over time
+	// Very lazy validation: it must be a non-empty ASCII string without spaces
+	if !isAscii(registration.Token) || spaceReg.MatchString(registration.Token) || len(registration.Token) < 1 {
+		return errors.New("Invalid token")
+	}
+
 	return nil
 }
 
