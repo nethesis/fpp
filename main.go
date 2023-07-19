@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -50,6 +51,19 @@ func InstanceTokenAuth() gin.HandlerFunc {
 	}
 }
 
+/** Utils **/
+
+func validateRegistration(registration Registration) error {
+	r, _ := regexp.Compile("^[0-9a-fA-F]+$")
+	if !r.MatchString(registration.Token) || len(registration.Token) != 64 {
+		return errors.New("Invalid token")
+	}
+	if !r.MatchString(registration.Topic) || len(registration.Topic) != 64 {
+		return errors.New("Invalid topic")
+	}
+	return nil
+}
+
 /** Gin routes **/
 
 func ping(c *gin.Context) {
@@ -64,16 +78,10 @@ func register(c *gin.Context) {
 		return
 	}
 
-	// Check token and topic format
-	r, _ := regexp.Compile("^[0-9a-fA-F]+$")
-	if !r.MatchString(registration.Token) || len(registration.Token) != 64 {
-		auditRegister("error", "apple", "invalid token", registration.Token, registration.Topic)
-		c.JSON(http.StatusInternalServerError, Response{Message: "Invalid token"})
-		return
-	}
-	if !r.MatchString(registration.Topic) || len(registration.Topic) != 64 {
-		auditRegister("error", "apple", "invalid topic", registration.Token, registration.Topic)
-		c.JSON(http.StatusInternalServerError, Response{Message: "Invalid topic"})
+	// Check registration format
+	if err := validateRegistration(registration); err != nil {
+		auditRegister("error", "apple", err.Error(), registration.Token, registration.Topic)
+		c.JSON(http.StatusInternalServerError, Response{Message: err.Error()})
 		return
 	}
 
@@ -98,16 +106,10 @@ func deregister(c *gin.Context) {
 		return
 	}
 
-	// Check token and topic format
-	r, _ := regexp.Compile("^[0-9a-fA-F]+$")
-	if !r.MatchString(registration.Token) || len(registration.Token) != 64 {
-		auditDeregister("error", "apple", "invalid token", registration.Token, registration.Topic)
-		c.JSON(http.StatusInternalServerError, Response{Message: "Invalid token"})
-		return
-	}
-	if !r.MatchString(registration.Topic) || len(registration.Topic) != 64 {
-		auditDeregister("error", "apple", "invalid topic", registration.Token, registration.Topic)
-		c.JSON(http.StatusInternalServerError, Response{Message: "Invalid topic"})
+	// Check registration format
+	if err := validateRegistration(registration); err != nil {
+		auditRegister("error", "apple", err.Error(), registration.Token, registration.Topic)
+		c.JSON(http.StatusInternalServerError, Response{Message: err.Error()})
 		return
 	}
 
