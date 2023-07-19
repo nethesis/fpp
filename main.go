@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"regexp"
+	"strings"
 	"syscall"
 	"time"
 	"unicode"
@@ -223,6 +224,11 @@ func send(c *gin.Context) {
 		}
 		response, err := fbClient.Send(ctx, message)
 		if err != nil {
+			// Clean stale token
+			// 404 response: https://firebase.google.com/docs/reference/fcm/rest/v1/ErrorCode
+			if strings.Contains(err.Error(), "registration-token-not-registered") {
+				deleteTopic(notification.Topic)
+			}
 			c.JSON(http.StatusInternalServerError, Response{Message: err.Error()})
 			auditSend("error", err.Error(), &notification)
 			return
