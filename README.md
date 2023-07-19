@@ -33,7 +33,7 @@ The server exposes the following APIs:
 
 - `/register`: POST, register a device. Both the device token and the topic must be a string of 64 hex characters.
   If device token and topic are valid, the server will save the token associated to the given topic.
-  Token/topic association will expire after 356 days: applications must be opened at least once every 6 months
+  Token/topic association will expire after 90 days: applications must be opened at least once every 3 months
   to keep receiving notifications.
   This endpoint must be validated with an header `Instance-Token`, see `INSTANCE_TOKEN` env var.
   Parameters:
