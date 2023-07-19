@@ -11,8 +11,9 @@ import (
 
 /** Database functions **/
 
-func countRegisteredDevices() float64 {
-	var count = 0
+func countRegisteredDevices() (float64, float64) {
+	var apnCount = 0
+	var fbCount = 0
 	db.View(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchValues = false
@@ -20,13 +21,17 @@ func countRegisteredDevices() float64 {
 		defer it.Close()
 		for it.Rewind(); it.Valid(); it.Next() {
 			if !it.Item().IsDeletedOrExpired() {
-				count++
+				if it.Item().UserMeta() == Apple {
+					apnCount++
+				} else if it.Item().UserMeta() == Firebase {
+					fbCount++
+				}
 			}
 		}
 		return nil
 	})
 
-	return float64(count)
+	return float64(apnCount), float64(fbCount)
 }
 
 func getTokenFromTopic(topic string) (string, error) {
@@ -50,10 +55,15 @@ func getTokenFromTopic(topic string) (string, error) {
 	return string(deviceToken), err
 }
 
-func saveTopicToken(topic string, token string) error {
+func saveTopicToken(topic string, token string, ttype string) error {
 	// Set a 6-months  TTL
 	return db.Update(func(txn *badger.Txn) error {
 		record := badger.NewEntry([]byte(topic), []byte(token)).WithTTL(24 * 180 * time.Hour)
+		if ttype == "apple" {
+			record.WithMeta(Apple)
+		} else {
+			record.WithMeta(Firebase)
+		}
 		err := txn.SetEntry(record)
 		return err
 	})

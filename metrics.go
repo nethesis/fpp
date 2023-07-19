@@ -8,7 +8,8 @@ import (
 /** Metrics functions and structs **/
 
 type Metrics struct {
-	RegisteredDevices    prometheus.Gauge
+	RegisteredAPNDevices    prometheus.Gauge
+	RegisteredFirebaseDevices    prometheus.Gauge
 	TotalSendCount       prometheus.Counter
 	APNSuccessCount      prometheus.Counter
 	APNErrorCount        prometheus.Counter
@@ -20,9 +21,13 @@ func initMetrics() (*Metrics, *prometheus.Registry) {
 	reg := prometheus.NewRegistry()
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	m := &Metrics{
-		RegisteredDevices: prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "fpp_registered_devices",
-			Help: "Number of registered devices.",
+		RegisteredAPNDevices: prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "fpp_registered_apn_devices",
+			Help: "Number of registered Apple APN devices.",
+		}),
+		RegisteredFirebaseDevices: prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "fpp_registered_firebase_devices",
+			Help: "Number of registered Google Firebase devices.",
 		}),
 		TotalSendCount: prometheus.NewCounter(prometheus.CounterOpts{
 			Name: "fpp_total_send_count",
@@ -45,7 +50,8 @@ func initMetrics() (*Metrics, *prometheus.Registry) {
 			Help: "Number of errored Google Firebase notifications.",
 		}),
 	}
-	reg.MustRegister(m.RegisteredDevices)
+	reg.MustRegister(m.RegisteredAPNDevices)
+	reg.MustRegister(m.RegisteredFirebaseDevices)
 	reg.MustRegister(m.TotalSendCount)
 	reg.MustRegister(m.APNSuccessCount)
 	reg.MustRegister(m.APNErrorCount)
