@@ -180,7 +180,7 @@ promhttp_metric_handler_errors_total{cause="gathering"} 0
 
 The deploy procedure should:
 - configure 2 FPP instances for every branding: one for production and one for sandbox;
-  the sandbox environment is mandatory to test iOS applications installed from [TestFlight](https://developer.apple.com/testflight/)
+  the sandbox environment is mandatory to test iOS applications running inside [Xcode](https://developer.apple.com/xcode/)
 - configure a Traefik instance to authenticate the requests and forward them to the right FPP instance:
   - `ping` and `send` endpoints must be authenticated by Traefik using `my.nethesis.it`
   - `register` and `deregister` endpoints should not be authenticated by Traefik
