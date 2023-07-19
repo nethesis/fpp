@@ -50,11 +50,30 @@ http:
       rule: PathPrefix(`/{{ brand_name }}/deregister`)
       service: fpp-{{ brand_name }}
       tls: {}
+    metrics-{{ brand_name }}:
+      entryPoints:
+        - http
+      middlewares:
+        - strip-brand-metrics-{{ brand_name }}
+      rule: PathPrefix(`/{{ brand_name }}/{{ fpp_metrics_path }}/metrics`)
+      service: fpp-{{ brand_name }}
+    metrics-https-{{ brand_name }}:
+      entryPoints:
+        - https
+      middlewares:
+        - strip-brand-metrics-{{ brand_name }}
+      rule: PathPrefix(`/{{ brand_name }}/{{ fpp_metrics_path }}/metrics`)
+      service: fpp-{{ brand_name }}
+      tls: {}
   middlewares:
     strip-brand-{{ brand_name }}:
       stripPrefix:
         prefixes:
           - "/{{ brand_name }}/"
+    strip-brand-metrics-{{ brand_name }}:
+      stripPrefix:
+        prefixes:
+          - "/{{ brand_name }}/{{ fpp_metrics_path }}/"
   services:
     fpp-{{ brand_name }}:
       loadBalancer:
