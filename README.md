@@ -68,7 +68,7 @@ The server can be configured using the following environment variables:
 - `APPLE_KEY_ID`: Apple Key ID for p8 credentials
 - `APPLE_TOPIC`: topic for Apple APN, like `it.nethesis.nethcti3.voip` (note the `.voip` suffix)
 - `APPLE_ENVIRONMENT` can be `production` or `sandbox`
-- `DB_PATH`: path for [Badger](https://github.com/dgraph-io/badger) database
+- `DB_PATH`: path for device [database](#database)
 - `INSTANCE_TOKEN`: a SHA25sum hash string representing a token for this instance.
    Requests to `/register` and `/deregister` token are validated against this token.
    This token must be compiled inside each mobile app
@@ -174,6 +174,20 @@ process_virtual_memory_max_bytes 1.8446744073709552e+19
 # TYPE promhttp_metric_handler_errors_total counter
 promhttp_metric_handler_errors_total{cause="encoding"} 0
 promhttp_metric_handler_errors_total{cause="gathering"} 0
+```
+
+## Database
+
+Registered devices are kept inside a local persistent [Badger](https://github.com/dgraph-io/badger) database.
+The device token/topic association is a key-value entry in the form: `<topic>:<device_token>`.
+Each entry has a TTL of 3 months which is extended on every `/send`.
+
+If the FPP instance is not running, the database can be inspected with a command line tool:
+```
+curl -sL https://github.com/dgraph-io/badger/releases/download/v4.1.0/badger-linux-amd64.tar.gz | tar xvz
+mv badger-linux-amd64 /usr/local/bin/badger
+cd /var/local/fpp/nethesis/db
+badger info --read-only --dir . --show-keys
 ```
 
 ## Build and deploy
