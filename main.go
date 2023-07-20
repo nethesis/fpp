@@ -216,9 +216,8 @@ func send(c *gin.Context) {
 			Android: &messaging.AndroidConfig{
 				Priority: "high",
 			},
-			// Android notification does not require any info: it is used only to wake up the app
-			// Just send a timestamp to make sure notification is always different
-			Data:  map[string]string{"timestamp": strconv.FormatInt(time.Now().UnixMilli(), 10)},
+			// Add a timestamp to make sure notification is always different
+			Data:  map[string]string{"call-id": notification.CallId, "uuid": notification.Uuid, "timestamp": strconv.FormatInt(time.Now().UnixMilli(), 10)},
 			Token: deviceToken,
 		}
 		response, err := fbClient.Send(ctx, message)
