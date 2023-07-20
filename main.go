@@ -90,10 +90,6 @@ func validateRegistration(registration Registration) error {
 
 /** Gin routes **/
 
-func ping(c *gin.Context) {
-	c.JSON(http.StatusOK, Response{Message: "pong"})
-}
-
 func register(c *gin.Context) {
 	var registration Registration
 
@@ -307,7 +303,6 @@ func main() {
 	updateDeviceMetrics()
 
 	router := gin.Default()
-	router.GET("/ping", ping)
 	router.GET("/metrics", gin.WrapH(promHandler))
 	router.POST("/send", send)
 	router.POST("/register", InstanceTokenAuth(), register)

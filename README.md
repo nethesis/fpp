@@ -27,8 +27,6 @@ GOOGLE_APPLICATION_CREDENTIALS="./credentials.json" APPLE_APPLICATION_CREDENTIAL
 
 The server exposes the following APIs:
 
-- `/ping`: GET, just test if the service is online
-
 - `/metrics`: GET, return metrics in Prometheus format
 
 - `/register`: POST, register a device. Both the device token and the topic must be a string of 64 hex characters.
@@ -196,7 +194,7 @@ The deploy procedure should:
 - configure 2 FPP instances for every branding: one for production and one for sandbox;
   the sandbox environment is mandatory to test iOS applications running inside [Xcode](https://developer.apple.com/xcode/)
 - configure a Traefik instance to authenticate the requests and forward them to the right FPP instance:
-  - `ping` and `send` endpoints must be authenticated by Traefik using `my.nethesis.it`
+  - `send` endpoint must be authenticated by Traefik using `my.nethesis.it`
   - `register` and `deregister` endpoints should not be authenticated by Traefik
 
 
