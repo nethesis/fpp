@@ -174,6 +174,9 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 promhttp_metric_handler_errors_total{cause="gathering"} 0
 ```
 
+A [Grafana](https://grafana.com/) dashboard is available inside the `deploy` directory.
+Just import the file named `grafana_dashboard.json".
+
 ## Database
 
 Registered devices are kept inside a local persistent [Badger](https://github.com/dgraph-io/badger) database.
