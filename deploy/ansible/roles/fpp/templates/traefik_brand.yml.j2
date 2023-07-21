@@ -3,15 +3,6 @@ http:
   routers:
     send-push-{{ item.key }}:
       entryPoints:
-        - http
-      middlewares:
-        - fpp-auth
-        - remove-auth-header
-        - strip-brand-{{ item.key }}
-      rule: PathPrefix(`/{{ item.key }}/send`)
-      service: fpp-{{ item.key }}
-    send-push-https-{{ item.key }}:
-      entryPoints:
         - https
       middlewares:
         - fpp-auth
@@ -22,13 +13,6 @@ http:
       tls: {}
     register-{{ item.key }}:
       entryPoints:
-        - http
-      middlewares:
-        - strip-brand-{{ item.key }}
-      rule: PathPrefix(`/{{ item.key }}/register`)
-      service: fpp-{{ item.key }}
-    register-https-{{ item.key }}:
-      entryPoints:
         - https
       middlewares:
         - strip-brand-{{ item.key }}
@@ -37,13 +21,6 @@ http:
       tls: {}
     deregister-{{ item.key }}:
       entryPoints:
-        - http
-      middlewares:
-        - strip-brand-{{ item.key }}
-      rule: PathPrefix(`/{{ item.key }}/deregister`)
-      service: fpp-{{ item.key }}
-    deregister-https-{{ item.key }}:
-      entryPoints:
         - https
       middlewares:
         - strip-brand-{{ item.key }}
@@ -51,13 +28,6 @@ http:
       service: fpp-{{ item.key }}
       tls: {}
     metrics-{{ item.key }}:
-      entryPoints:
-        - http
-      middlewares:
-        - strip-brand-metrics-{{ item.key }}
-      rule: PathPrefix(`/{{ item.key }}/{{ fpp_metrics_path }}/metrics`)
-      service: fpp-{{ item.key }}
-    metrics-https-{{ item.key }}:
       entryPoints:
         - https
       middlewares:

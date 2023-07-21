@@ -5,8 +5,6 @@
       vars:
         traefik_static_configuration:
           entryPoints:
-            http:
-              address: :80
             https:
               address: :443
             metrics:
