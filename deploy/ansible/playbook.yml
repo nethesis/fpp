@@ -1,5 +1,9 @@
 - hosts: all
   become: true
+  pre_tasks:
+   - name: Disable SELinux
+     ansible.posix.selinux:
+       state: disabled
   roles:
     - role: amygos.traefik
       vars:
