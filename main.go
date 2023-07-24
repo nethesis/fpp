@@ -134,9 +134,15 @@ func deregister(c *gin.Context) {
 
 	// Check if tuple key/topic matches
 	deviceToken, err := getTokenFromTopic(registration.Topic)
-	if err != nil || deviceToken != registration.Token {
-		auditDeregister("error", registration.Type, "invalid tuple", registration.Token, registration.Topic)
-		c.JSON(http.StatusInternalServerError, Response{Message: "Invalid token/topic tuple"})
+	if err != nil {
+		auditDeregister("error", registration.Type, err.Error(), registration.Token, registration.Topic)
+		c.JSON(http.StatusInternalServerError, Response{Message: err.Error()})
+		return
+	}
+	if deviceToken != registration.Token {
+		errMsg := "Invalid token/topic tuple"
+		auditDeregister("error", registration.Type, errMsg, registration.Token, registration.Topic)
+		c.JSON(http.StatusInternalServerError, Response{Message: errMsg})
 		return
 	}
 
@@ -163,6 +169,7 @@ func send(c *gin.Context) {
 
 	deviceToken, err := getTokenFromTopic(notification.Topic)
 	if err != nil {
+		auditSend("error", err.Error(), &notification)
 		c.JSON(http.StatusInternalServerError, Response{Message: err.Error()})
 		return
 	}
