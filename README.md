@@ -88,7 +88,7 @@ curl -H "Accept: application/json" -H "Instance-Token: 8dc657c146dc410790adb71d0
 Each request is logged to standard error in CSV format to ease future data analysis.
 The standard error is redirect to syslog using systemd unit.
 
-Each line can have 2 different formats.
+Each line can have 3 different formats.
 
 ### Send
 
@@ -118,6 +118,17 @@ Example of successful request:
 ```
 
 On error, the `response` field contains the specific error message.
+
+### Invalid request
+
+If the POST data can't be decoded, like in case of an invalid JSON,  requests are loggend in this special format:
+```
+datetime_rfc3339,"invalid",endpoint,result,error
+```
+
+Example:
+```
+```
 
 ## Metrics
 

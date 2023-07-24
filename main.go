@@ -94,6 +94,7 @@ func register(c *gin.Context) {
 	var registration Registration
 
 	if err := c.BindJSON(&registration); err != nil {
+		auditInvalidRequest("register", err.Error())
 		c.JSON(http.StatusInternalServerError, Response{Message: "Invalid parameters"})
 		return
 	}
@@ -121,6 +122,7 @@ func deregister(c *gin.Context) {
 	var registration Registration
 
 	if err := c.BindJSON(&registration); err != nil {
+		auditInvalidRequest("deregister", err.Error())
 		c.JSON(http.StatusInternalServerError, Response{Message: "Invalid parameters"})
 		return
 	}
@@ -163,6 +165,7 @@ func send(c *gin.Context) {
 	var message *messaging.Message
 
 	if err := c.BindJSON(&notification); err != nil {
+		auditInvalidRequest("send", err.Error())
 		c.JSON(http.StatusInternalServerError, Response{Message: "Invalid parameters"})
 		return
 	}

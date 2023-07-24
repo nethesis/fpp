@@ -31,3 +31,7 @@ func auditRegister(result string, rtype string, response string, token string, t
 func auditDeregister(result string, rtype string, response string, token string, topic string) {
 	audit([]string{"deregister", rtype, result, response, token, topic})
 }
+
+func auditInvalidRequest(endpoint string, message string) {
+	audit([]string{"invalid", endpoint, "error", message})
+}
