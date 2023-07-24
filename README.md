@@ -128,6 +128,7 @@ datetime_rfc3339,"invalid",endpoint,result,error
 
 Example:
 ```
+2023-07-24T14:48:09Z,invalid,register,error,unexpected EOF
 ```
 
 ## Metrics
