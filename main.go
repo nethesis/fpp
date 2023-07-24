@@ -81,8 +81,15 @@ func validateRegistration(registration Registration) error {
 
 	// Token format is not known and can change over time
 	// Very lazy validation: it must be a non-empty ASCII string without spaces
-	if !isAscii(registration.Token) || spaceReg.MatchString(registration.Token) || len(registration.Token) < 1 {
-		return errors.New("Invalid token")
+	tokenMsg := " (token: "+registration.Token+")"
+	if len(registration.Token) < 1 {
+		return errors.New("Invalid token: token is empty")
+	}
+	if !isAscii(registration.Token) {
+		return errors.New("Invalid token: token contains non-ascii chars"+tokenMsg)
+	}
+	if spaceReg.MatchString(registration.Token) {
+		return errors.New("Invalid token: token contains spaces"+tokenMsg)
 	}
 
 	return nil
