@@ -60,7 +60,8 @@ The server exposes the following APIs:
   - `display-name`: Caller display name
 
 The server can be configured using the following environment variables:
-- `GOOGLE_APPLICATION_CREDENTIALS`: (required) path of the service account JSON file
+- `GOOGLE_APPLICATION_CREDENTIALS`: path of the Firebase service account JSON file
+- `APPLE_APPLICATION_CREDENTIALS`: path to the APN account p8 file
 - `LISTEN`: (optional) listen address and port, default is `127.0.0.1:8080`
 - `APPLE_TEAM_ID`: Apple Team ID for p8 credentials
 - `APPLE_KEY_ID`: Apple Key ID for p8 credentials
