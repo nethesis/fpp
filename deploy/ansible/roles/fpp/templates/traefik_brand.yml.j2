@@ -29,6 +29,7 @@ http:
       rule: PathPrefix(`/{{ item.key }}/deregister`)
       service: fpp-{{ item.key }}
       tls: {}
+{% if fpp_metrics_path|length %}
     metrics-{{ item.key }}:
       entryPoints:
         - https
@@ -37,15 +38,18 @@ http:
       rule: PathPrefix(`/{{ item.key }}/{{ fpp_metrics_path }}/metrics`)
       service: fpp-{{ item.key }}
       tls: {}
+{% endif %}
   middlewares:
     strip-brand-{{ item.key }}:
       stripPrefix:
         prefixes:
           - "/{{ item.key }}/"
+{% if fpp_metrics_path|length %}
     strip-brand-metrics-{{ item.key }}:
       stripPrefix:
         prefixes:
           - "/{{ item.key }}/{{ fpp_metrics_path }}/"
+{% endif %}
   services:
     fpp-{{ item.key }}:
       loadBalancer:

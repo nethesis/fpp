@@ -3,7 +3,7 @@ fpp_url: https://github.com/nethesis/fpp
 fpp_version: 0.0.7
 
 fpp_auth_service_url: ""
-fpp_metrics_path: 51ac1758-257d-11ee-8b68-040e3cc0d4d4
+fpp_metrics_path: ""
 
 brands:
   nethesis:
