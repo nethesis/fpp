@@ -85,14 +85,15 @@
   loop:  "{{ brands | dict2items}}"
 
 - name: Copy traefik /ping configuration
-  ansible.builtin.copy:
-    dest: /etc/traefik/conf.d/ping.yml
-    src: traefik_ping.yml
-
-- name: Generate traefik middlewares configuration
   ansible.builtin.template:
-    src: traefik_middlewares.yml.j2
-    dest: /etc/traefik/conf.d/traefik_middlewares.yml
+    dest: /etc/traefik/conf.d/ping.yml
+    src: traefik_ping.yml.j2
+
+- name: Generate traefik auth middlewares configuration
+  ansible.builtin.template:
+    src: traefik_auth_middlewares.yml.j2
+    dest: /etc/traefik/conf.d/traefik_auth_middlewares.yml
+  when: fpp_auth_service_url|length > 0
 
 - name: Generate traefik brand configuration
   ansible.builtin.template:

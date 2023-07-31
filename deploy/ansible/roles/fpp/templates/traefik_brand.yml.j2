@@ -5,8 +5,10 @@ http:
       entryPoints:
         - https
       middlewares:
+{% if fpp_auth_service_url|length %}
         - fpp-auth
         - remove-auth-header
+{% endif %}
         - strip-brand-{{ item.key }}
       rule: PathPrefix(`/{{ item.key }}/send`)
       service: fpp-{{ item.key }}
