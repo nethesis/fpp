@@ -88,6 +88,7 @@
   ansible.builtin.template:
     dest: /etc/traefik/conf.d/ping.yml
     src: traefik_ping.yml.j2
+  when: fpp_ping is true
 
 - name: Generate traefik auth middlewares configuration
   ansible.builtin.template:
