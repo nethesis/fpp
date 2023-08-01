@@ -90,6 +90,12 @@
     src: traefik_ping.yml.j2
   when: fpp_ping is true
 
+- name: Copy traefik metrics configuration
+  ansible.builtin.template:
+    dest: /etc/traefik/conf.d/metrics.yml
+    src: traefik_metrics.yml.j2
+  when: fpp_metrics_path|length > 0
+
 - name: Generate traefik auth middlewares configuration
   ansible.builtin.template:
     src: traefik_auth_middlewares.yml.j2

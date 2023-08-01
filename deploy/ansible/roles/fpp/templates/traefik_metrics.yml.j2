@@ -1,0 +1,17 @@
+http:
+  routers:
+    ping:
+      entryPoints:
+      - https
+      rule: PathPrefix(`/{{ fpp_metrics_path }}/metrics`)
+      middlewares:
+{% if fpp_auth_service_url|length %}
+      - fpp-auth
+{% endif %}
+      service: prometheus@internal
+      tls: {}
+  middlewares:
+    strip-traefik-metrics:
+      stripPrefix:
+        prefixes:
+          - "/{{ fpp_metrics_path }}/"

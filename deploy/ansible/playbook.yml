@@ -11,8 +11,6 @@
           entryPoints:
             https:
               address: :443
-            metrics:
-              address: :8082
           providers:
             file:
               directory: /etc/traefik/conf.d
@@ -20,9 +18,9 @@
             format: json
           metrics:
             prometheus:
-              entryPoint: metrics
               addEntryPointsLabels: true
               addServicesLabels: true
+              manualRouting: true
           ping:
             manualRouting: true
     - role: fpp
