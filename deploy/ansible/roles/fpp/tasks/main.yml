@@ -1,0 +1,109 @@
+---
+- name: Download fpp
+  ansible.builtin.get_url:
+    url: "{{ fpp_url }}/releases/download/{{ fpp_version }}/fpp_{{ fpp_version }}_linux_amd64.tar.gz"
+    dest: /tmp
+  register: _download_archive
+  until: _download_archive is succeeded
+  retries: 5
+  delay: 2
+  check_mode: false
+
+- name: Install fpp
+  unarchive:
+    src: "/tmp/fpp_{{ fpp_version }}_linux_amd64.tar.gz"
+    dest: /usr/bin
+    remote_src: yes
+    mode: 0755
+    owner: root
+    group: root
+    exclude:
+      - CHANGELOG.md
+      - LICENSE.md
+
+- name: Add the user 'fpp'
+  ansible.builtin.user:
+    name: fpp
+    create_home: false
+
+- name: Create fpp working directory
+  ansible.builtin.file:
+    path: /var/local/fpp/
+    state: directory
+    recurse: yes
+
+- name: Create fpp badger dbs directory
+  ansible.builtin.file:
+    path: /var/local/fpp/dbs
+    state: directory
+    recurse: yes
+    owner: fpp
+    group: fpp
+
+- name: Create fpp brand directory
+  ansible.builtin.file:
+    path: /var/local/fpp/{{ item.key }}
+    state: directory
+    recurse: yes
+  loop:  "{{ brands | dict2items}}"
+
+- name: Copy brand Google credentials file
+  ansible.builtin.copy:
+    dest: "/var/local/fpp/{{ item.key }}/credentials.json"
+    src: "{{ item.value.google_credentials_file }}"
+  loop:  "{{ brands | dict2items}}"
+
+- name: Copy brand Apple credentials file
+  ansible.builtin.copy:
+    dest: "/var/local/fpp/{{ item.key }}/credentials.p8"
+    src: "{{ item.value.apple_credentials_file }}"
+  loop:  "{{ brands | dict2items}}"
+
+- name: Generate brand configuration file
+  ansible.builtin.copy:
+    content: |
+      LISTEN=127.0.0.1:{{ item.value.http_port }}
+      APPLE_TEAM_ID={{ item.value.apple_team_id }}
+      APPLE_KEY_ID={{ item.value.apple_key_id }}
+      APPLE_TOPIC={{ item.value.apple_topic }}
+      APPLE_ENVIRONMENT={{ item.value.apple_environment }}
+      INSTANCE_TOKEN={{ item.value.instance_token }}
+    dest: "/var/local/fpp/{{ item.key }}/env"
+  loop:  "{{ brands | dict2items}}"
+
+- name: Copy systemd unit file
+  ansible.builtin.copy:
+    dest: /usr/lib/systemd/system/
+    src: fpp@.service
+
+- name: Systemd configuration
+  ansible.builtin.systemd:
+    name: "fpp@{{ item.key }}"
+    daemon_reload: true
+    enabled: true
+    state: started
+  loop:  "{{ brands | dict2items}}"
+
+- name: Copy traefik /ping configuration
+  ansible.builtin.template:
+    dest: /etc/traefik/conf.d/ping.yml
+    src: traefik_ping.yml.j2
+  when: fpp_ping is true
+
+- name: Copy traefik metrics configuration
+  ansible.builtin.template:
+    dest: /etc/traefik/conf.d/metrics.yml
+    src: traefik_metrics.yml.j2
+  when: fpp_metrics_path|length > 0
+
+- name: Generate traefik auth middlewares configuration
+  ansible.builtin.template:
+    src: traefik_auth_middlewares.yml.j2
+    dest: /etc/traefik/conf.d/traefik_auth_middlewares.yml
+  when: fpp_auth_service_url|length > 0
+
+- name: Generate traefik brand configuration
+  ansible.builtin.template:
+    src: traefik_brand.yml.j2
+    dest: /etc/traefik/conf.d/{{ item.key }}.yml
+  loop:  "{{ brands | dict2items}}"

@@ -1,0 +1,12 @@
+http:
+  routers:
+    ping:
+      entryPoints:
+      - https
+      rule: Path(`/ping`)
+      middlewares:
+{% if fpp_auth_service_url|length %}
+      - fpp-auth
+{% endif %}
+      service: ping@internal
+      tls: {}

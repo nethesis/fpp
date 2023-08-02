@@ -8,13 +8,13 @@ PrivateTmp=true
 WorkingDirectory=/var/local/fpp/%i
 Environment=GOOGLE_APPLICATION_CREDENTIALS=/var/local/fpp/%i/credentials.json
 Environment=APPLE_APPLICATION_CREDENTIALS=/var/local/fpp/%i/credentials.p8
-Environment=DB_PATH=/var/local/fpp/%i/db
+Environment=DB_PATH=/var/local/fpp/dbs/%i
 Environment=GIN_MODE=release
 EnvironmentFile=/var/local/fpp/%i/env
 StandardError=journal
 StandardOutput=journal
-User=nobody
-Group=nobody
+User=fpp
+Group=fpp
 ExecStart=/usr/bin/fpp
 
 [Install]

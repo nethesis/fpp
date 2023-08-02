@@ -1,0 +1,26 @@
+- hosts: all
+  become: true
+  pre_tasks:
+   - name: Disable SELinux
+     ansible.posix.selinux:
+       state: disabled
+  roles:
+    - role: amygos.traefik
+      vars:
+        traefik_static_configuration:
+          entryPoints:
+            https:
+              address: :443
+          providers:
+            file:
+              directory: /etc/traefik/conf.d
+          accessLog:
+            format: json
+          metrics:
+            prometheus:
+              addEntryPointsLabels: true
+              addServicesLabels: true
+              manualRouting: true
+          ping:
+            manualRouting: true
+    - role: fpp

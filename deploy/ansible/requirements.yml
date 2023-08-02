@@ -1,0 +1,5 @@
+---
+- src: https://github.com/Amygos/ansible-traefik.git
+  name: amygos.traefik
+  version: 0.0.6
+  scm: git

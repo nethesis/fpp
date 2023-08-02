@@ -1,0 +1,59 @@
+---
+http:
+  routers:
+    send-push-{{ item.key }}:
+      entryPoints:
+        - https
+      middlewares:
+{% if fpp_auth_service_url|length %}
+        - fpp-auth
+        - remove-auth-header
+{% endif %}
+        - strip-brand-{{ item.key }}
+      rule: PathPrefix(`/{{ item.key }}/send`)
+      service: fpp-{{ item.key }}
+      tls: {}
+    register-{{ item.key }}:
+      entryPoints:
+        - https
+      middlewares:
+        - strip-brand-{{ item.key }}
+      rule: PathPrefix(`/{{ item.key }}/register`)
+      service: fpp-{{ item.key }}
+      tls: {}
+    deregister-{{ item.key }}:
+      entryPoints:
+        - https
+      middlewares:
+        - strip-brand-{{ item.key }}
+      rule: PathPrefix(`/{{ item.key }}/deregister`)
+      service: fpp-{{ item.key }}
+      tls: {}
+{% if fpp_metrics_path|length %}
+    metrics-{{ item.key }}:
+      entryPoints:
+        - https
+      middlewares:
+        - strip-brand-metrics-{{ item.key }}
+      rule: PathPrefix(`/{{ item.key }}/{{ fpp_metrics_path }}/metrics`)
+      service: fpp-{{ item.key }}
+      tls: {}
+{% endif %}
+  middlewares:
+    strip-brand-{{ item.key }}:
+      stripPrefix:
+        prefixes:
+          - "/{{ item.key }}/"
+{% if fpp_metrics_path|length %}
+    strip-brand-metrics-{{ item.key }}:
+      stripPrefix:
+        prefixes:
+          - "/{{ item.key }}/{{ fpp_metrics_path }}/"
+{% endif %}
+  services:
+    fpp-{{ item.key }}:
+      loadBalancer:
+        passHostHeader: false
+        servers:
+          - url: 'http://localhost:{{ item.value.http_port }}'
+
