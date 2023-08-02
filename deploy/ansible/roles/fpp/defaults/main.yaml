@@ -6,13 +6,4 @@ fpp_auth_service_url: ""
 fpp_metrics_path: ""
 fpp_ping: true
 
-brands:
-  nethesis:
-    http_port: 8081
-    google_credentials_file: credentials.json
-    apple_credentials_file: credentials.p8
-    apple_team_id: 4tf7of1hqb
-    apple_key_id: cit75cjk43
-    apple_topic: com.example.MyApp
-    apple_environment: production
-    instance_token: 1cde32b5-fdc0-464d-86ee-6a91dab8fe27
+brands: {}

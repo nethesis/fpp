@@ -206,6 +206,9 @@ badger info --read-only --dir . --show-keys
 
 ## Build and deploy
 
+Fpp can be deployed manually or using the [Ansible role](deploy/ansible/roles/fpp/README.md).
+
+### Manual setup
 The deploy procedure should:
 - configure 2 FPP instances for every branding: one for production and one for sandbox;
   the sandbox environment is mandatory to test iOS applications running inside [Xcode](https://developer.apple.com/xcode/)
