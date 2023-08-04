@@ -1,6 +1,6 @@
 http:
   routers:
-    ping:
+    metrics:
       entryPoints:
       - https
       rule: PathPrefix(`/{{ fpp_metrics_path }}/metrics`)
