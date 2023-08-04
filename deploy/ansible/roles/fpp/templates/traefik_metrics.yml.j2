@@ -5,9 +5,7 @@ http:
       - https
       rule: PathPrefix(`/{{ fpp_metrics_path }}/metrics`)
       middlewares:
-{% if fpp_auth_service_url|length %}
-      - fpp-auth
-{% endif %}
+      - strip-traefik-metrics
       service: prometheus@internal
       tls: {}
   middlewares:
