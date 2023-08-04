@@ -1,6 +1,6 @@
 ---
 fpp_url: https://github.com/nethesis/fpp
-fpp_version: 0.0.9
+fpp_version: 0.0.11
 
 fpp_auth_service_url: ""
 fpp_metrics_path: ""
