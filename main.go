@@ -189,6 +189,7 @@ func send(c *gin.Context) {
 		apnNotif.DeviceToken = deviceToken
 		apnNotif.Topic = apnTopic
 		apnNotif.PushType = apns2.PushTypeVOIP
+        apnNotif.Expiration = time.Now().UTC().AddDate(0, -1, 0) // set expiration to last-month, disable re-delivery attempt
 		apnNotif.Payload = []byte(fmt.Sprintf(`{
 			"aps" : {
 				"sound": "",
