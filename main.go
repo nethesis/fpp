@@ -197,7 +197,7 @@ func send(c *gin.Context) {
 				"send-time": "%s"
 			},
 			"from-uri": "%s",
-			"display-naame": "%s",
+			"display-name": "%s",
 			"pn_ttl": 100,
 			"customPayload": {}
 		}
